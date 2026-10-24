@@ -1,12 +1,61 @@
+<div align="center">
+
+<img src="assets/sparkcert-hero.svg" alt="SparkCert — private, evidence-based AI readiness checks for DGX Spark" width="100%" />
+
 # SparkCert
 
-**Local-first AI production-readiness workbench for NVIDIA DGX Spark and other SSH-managed Linux inference hosts.**
+**Local-first AI production-readiness assessment for NVIDIA DGX Spark and SSH-managed Linux inference hosts.**
 
-SparkCert is an *independent, unofficial* product. It does not issue an NVIDIA-approved certificate, regulatory certification, or enterprise safety guarantee. It captures repeatable test evidence and exports assessment reports.
+*Connect securely. Inspect real infrastructure. Evaluate a running model API. Export traceable evidence.*
 
-> **Continuing in another workspace?** Start with [`docs/HANDOVER_START_HERE.md`](docs/HANDOVER_START_HERE.md) for the full project state, architecture, feature matrix, design/motion guidance, and next steps. The app is a development MVP, **not** a verified production release.
+**Development MVP v0.1.0** · **Windows / macOS / Linux source install** · **No cloud account required** · **Independent, unofficial project**
 
-**[Explore the animated architecture blueprint](docs/ARCHITECTURE.html)** · [Cross-workspace continuation prompt](docs/CONTINUE_IN_NEW_WORKSPACE.md) · [Verification matrix](docs/VERIFICATION.md)
+[Quick start](#quick-start-source) · [Animated walkthrough](#animated-product-walkthrough) · [Architecture](#system-architecture) · [Current features](#what-actually-works-in-v010) · [Roadmap](docs/PRODUCT_ROADMAP.md) · [Continue development](docs/HANDOVER_START_HERE.md)
+
+</div>
+
+> [!IMPORTANT]
+> **Development MVP, not a certified production release.** SparkCert is independently developed, is not affiliated with or endorsed by NVIDIA, and does **not** issue NVIDIA-approved or regulatory certificates. Readiness percentages apply only to explicitly executed checks. No physical DGX Spark / cross-platform installer validation is claimed.
+
+## Animated product walkthrough
+
+<p align="center">
+  <img src="assets/sparkcert-workflow-animated.svg" alt="Animated illustrative SparkCert workflow: connect using SSH, inspect read-only diagnostics, evaluate an existing model API, and export a PDF evidence report" width="100%" />
+</p>
+
+**Four-step workflow:** **Connect** through system OpenSSH (including familiar VS Code-style aliases) → **Inspect** read-only Linux/GPU diagnostics → **Evaluate** a separately running OpenAI-compatible model endpoint → **Report** results with local history and PDF export.
+
+*This animation is a conceptual walkthrough of the implemented workflow, not a live screen recording or evidence of successful DGX Spark hardware testing. It respects reduced-motion preferences.*
+
+**Experience today:** source-installed local web UI or optional pywebview desktop window. Native signed Windows/macOS/Linux installers, automatic device discovery, SSH tunnel creation, remote agent installation, model deployment and SFTP uploads are **planned, not shipped**.
+
+## System architecture
+
+<p align="center">
+  <img src="assets/sparkcert-architecture.svg" alt="SparkCert local-first architecture: browser or desktop UI to loopback FastAPI controller, system OpenSSH for remote Linux diagnostics, httpx for already-running model API, and local SQLite plus PDF reports" width="100%" />
+</p>
+
+**What runs where:** SparkCert's UI, FastAPI controller, OpenSSH client, evaluator and SQLite database run **on the operator's computer**. The remote DGX Spark/Linux host is accessed through existing SSH and provides read-only diagnostic output. AI model checks contact a **separately running** OpenAI-compatible endpoint, either directly or through a manually configured private tunnel. There is **no deployed SparkCert remote agent in v0.1.0**.
+
+See the editable [Mermaid diagram and detailed data-flow documentation](docs/ARCHITECTURE.md), the [animated architecture tour](docs/ARCHITECTURE.html) (download/open locally; GitHub does not execute HTML previews), and the [design system](docs/DESIGN_SYSTEM.md).
+
+## Why SparkCert?
+
+Most AI deployment documentation stops at "the model runs." SparkCert focuses on the evidence needed to assess a real environment: authenticated connectivity, observable host prerequisites, repeatable model probes, explicit test limitations, and exported reports. This is **assessment tooling**, not a replacement for NVIDIA's official device-management software or an accredited certification program.
+
+### Project navigation
+
+| Resource | What it contains |
+| --- | --- |
+| [Architecture](docs/ARCHITECTURE.md) | Implemented components, trust boundaries, data flows and planned evolution |
+| [Design system](docs/DESIGN_SYSTEM.md) | Typography, colors, layout, subtle animations, accessibility constraints |
+| [Product status](docs/PROJECT_STATUS.md) | Implemented vs partial vs planned vs unverified features |
+| [Verification ledger](docs/VERIFICATION.md) | Test evidence, manual hardware / OS validation matrix |
+| [Development roadmap](docs/PRODUCT_ROADMAP.md) | Production hardening and milestones |
+| [Workspace handover](docs/WORKSPACE_HANDOFF.md) | Canonical handoff for another computer or coding agent |
+| [Continue in new workspace](docs/CONTINUE_IN_NEW_WORKSPACE.md) | Reusable development prompt and continuity checklist |
+
+---
 
 ## What actually works in v0.1.0
 
