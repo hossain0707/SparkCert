@@ -6,6 +6,8 @@ SparkCert is an *independent, unofficial* product. It does not issue an NVIDIA-a
 
 > **Continuing in another workspace?** Start with [`docs/HANDOVER_START_HERE.md`](docs/HANDOVER_START_HERE.md) for the full project state, architecture, feature matrix, design/motion guidance, and next steps. The app is a development MVP, **not** a verified production release.
 
+**[Explore the animated architecture blueprint](docs/ARCHITECTURE.html)** · [Cross-workspace continuation prompt](docs/CONTINUE_IN_NEW_WORKSPACE.md) · [Verification matrix](docs/VERIFICATION.md)
+
 ## What actually works in v0.1.0
 
 | Capability | Implementation | Notes |

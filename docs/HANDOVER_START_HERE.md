@@ -75,6 +75,7 @@ SparkCert/
 │   ├── HANDOVER_START_HERE.md   This document
 │   ├── ARCHITECTURE.md          Technical dataflows and interfaces
 │   ├── DESIGN_SYSTEM.md         Visual/motion specification
+│   ├── ARCHITECTURE.html         Interactive, responsive architecture diagram
 │   └── PRODUCT_ROADMAP.md       Required production steps
 └── .github/workflows/ci.yml    Unit tests and desktop build matrix
 ```
