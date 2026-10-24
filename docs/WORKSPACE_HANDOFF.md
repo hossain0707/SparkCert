@@ -135,3 +135,18 @@ See `PROJECT_STATUS.md` for exact feature-by-feature acceptance criteria and pri
 ## 9. Business/product positioning
 
 SparkCert is a cross-platform control plane for verifiable local AI readiness: **host prerequisite checks + narrow model-behavior tests + stored evidence + reproducible reports**. It is not a replacement for NVIDIA Sync or a claimed NVIDIA-endorsed certification service. First support Spark; build a generic SSH/OpenAI-compatible backend so the addressable market includes non-Spark inference hosts. Freemium/commercial pricing remains a hypothesis, not a verified business model.
+
+
+## README showcase and GitHub profile update — 2026-10-25
+
+The repository README now embeds **three version-controlled SVG assets**:
+
+1. \`assets/sparkcert-hero.svg\` — branded overview hero with truthful v0.1.0 MVP labeling.
+2. \`assets/sparkcert-workflow-animated.svg\` — CSS-animated four-stage **illustrative** tour (Connect → Inspect → Evaluate → Report); includes reduced-motion support, not real hardware or screen-recording evidence.
+3. \`assets/sparkcert-architecture.svg\` — diagram of the **implemented** local-controller architecture; subtle animated paths represent logical data movement only.
+
+The README also links to \`docs/ARCHITECTURE.md\`, \`docs/DESIGN_SYSTEM.md\`, \`docs/PROJECT_STATUS.md\`, \`docs/VERIFICATION.md\`, and this handoff so future workspaces can continue with full context.
+
+GitHub repository sidebar **About** description and topics require a separate repository-metadata edit; committing markdown does not change them. The exact suggested metadata and owner instructions are in \`docs/REPOSITORY_PROFILE.md\`. Do not claim those sidebar settings were applied unless independently verified.
+
+**Verification:** original Python automated test suite: 9 passed; \`node --check web/app.js\` completed successfully in the current Linux workspace. GitHub source-file links and asset contents were fetched from the updated \`main\` branch. Animated SVG should be reviewed visually on the public GitHub README; no real DGX Spark connection, signed installer, hardware evaluation, or customer acceptance testing was performed as part of this documentation update.
