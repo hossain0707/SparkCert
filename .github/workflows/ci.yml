@@ -1,0 +1,67 @@
+name: SparkCert CI and Desktop Packages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -e '.[dev]'
+      - run: python -m pytest -q
+      - run: node --check web/app.js
+
+  desktop:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Linux webview dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-0 libwebkit2gtk-4.1-0 gir1.2-webkit2-4.1 xvfb
+      - name: Install dependencies
+        run: python -m pip install -e '.[desktop]'
+      - name: Build native desktop
+        shell: bash
+        run: |
+          python -m PyInstaller --noconfirm --clean --windowed --onedir \
+            --name SparkCert \
+            --add-data 'web:web' \
+            --collect-all uvicorn \
+            --collect-all webview \
+            --hidden-import sparkcert.app \
+            desktop_launcher.py
+      - name: macOS DMG
+        if: runner.os == 'macOS'
+        shell: bash
+        run: hdiutil create -volname SparkCert -srcfolder dist/SparkCert.app -ov -format UDZO dist/SparkCert-macOS.dmg
+      - name: Upload desktop artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SparkCert-${{ runner.os }}
+          path: |
+            dist/SparkCert/
+            dist/SparkCert.app/
+            dist/SparkCert-macOS.dmg
+          if-no-files-found: error

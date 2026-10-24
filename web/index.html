@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#0b111b" />
+<meta name="sparkcert-token" content="__SPARKCERT_TOKEN__" />
+<title>SparkCert — Private AI Readiness</title>
+<link rel="stylesheet" href="/assets/styles.css" />
+<script src="/assets/app.js" defer></script>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" class="svg-library" aria-hidden="true">
+<symbol id="i-overview" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
+<symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="7" rx="2"/><path d="M7 6.5h.01M7 17.5h.01M11 6.5h7M11 17.5h7"/></symbol>
+<symbol id="i-activity" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10Z"/><path d="M13 3v7h7M8 15h8M8 18h5"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+<symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2 8c6-6 14-6 20 0M5 12c4-4 10-4 14 0M8.5 16c2-2 5-2 7 0M12 20h.01"/></symbol>
+<symbol id="i-terminal" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="m6 9 3 3-3 3M12 15h5"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+<symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3"/></symbol>
+<symbol id="i-cpu" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 9h6v6H9zM9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.07 2.07a1.7 1.7 0 0 0-1.95-.4 1.7 1.7 0 0 0-1.04 1.6V21h-2.93v-.8a1.7 1.7 0 0 0-1.04-1.6 1.7 1.7 0 0 0-1.95.4l-2.07-2.07a1.7 1.7 0 0 0 .4-1.95A1.7 1.7 0 0 0 5.54 14H5v-3h.54a1.7 1.7 0 0 0 1.6-1.04 1.7 1.7 0 0 0-.4-1.95L8.81 5.9a1.7 1.7 0 0 0 1.95.4 1.7 1.7 0 0 0 1.04-1.6V4h2.93v.7a1.7 1.7 0 0 0 1.04 1.6 1.7 1.7 0 0 0 1.95-.4l2.07 2.07a1.7 1.7 0 0 0-.4 1.95A1.7 1.7 0 0 0 20.46 11H21v3h-.54A1.7 1.7 0 0 0 19.4 15Z"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5M5.5 9A7 7 0 0 1 18 7l2 5M4 12l2 5a7 7 0 0 0 12.5-2"/></symbol>
+<symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-external" viewBox="0 0 24 24"><path d="M13 4h7v7M20 4 9 15M20 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h6"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-9v.1"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15M10 10v7M14 10v7"/></symbol>
+</svg>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="brand-mark"><svg viewBox="0 0 42 42"><path d="M12 26 21 8l9 18M16 20h10M10 33h22" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></div><div><strong>SparkCert<span class="brand-dot">.</span></strong><small>AI READINESS STUDIO</small></div></div>
+    <div class="nav-caption">WORKSPACE</div>
+    <nav class="nav" aria-label="Primary navigation">
+      <button data-page="overview" class="nav-item active"><svg><use href="#i-overview"/></svg><span>Overview</span></button>
+      <button data-page="connections" class="nav-item"><svg><use href="#i-server"/></svg><span>Connections</span><span class="nav-count" id="nav-device-count">0</span></button>
+      <button data-page="evaluations" class="nav-item"><svg><use href="#i-activity"/></svg><span>AI Evaluations</span></button>
+      <button data-page="reports" class="nav-item"><svg><use href="#i-file"/></svg><span>Evidence Reports</span></button>
+    </nav>
+    <div class="nav-caption nav-caption-lower">SYSTEM</div>
+    <nav class="nav"><button data-page="about" class="nav-item"><svg><use href="#i-settings"/></svg><span>Settings & Security</span></button></nav>
+    <div class="side-bottom"><div class="status-box"><span class="pulse-dot"></span><div><strong>Local-first workspace</strong><small>Private by default</small></div></div><div class="side-signature">INDEPENDENT SOFTWARE <span>·</span> v<span id="side-version">0.1.0</span></div></div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><div class="topbar-left"><button class="mobile-menu icon-button" id="menu-button" aria-label="Toggle navigation"><svg><use href="#i-overview"/></svg></button><span class="breadcrumb">Workspace</span><svg class="tiny-chevron"><use href="#i-chevron"/></svg><strong id="breadcrumb-current">Overview</strong></div><div class="topbar-right"><div class="local-tag"><span></span> SECURE LOCAL SESSION</div><div class="profile-avatar" title="Local operator">SC</div></div></header>
+    <div id="content" class="page"></div>
+  </main>
+</div>
+<div id="toast-region" role="status" aria-live="polite"></div>
+<dialog id="modal" class="dialog"><div id="modal-inner"></div></dialog>
+</body>
+</html>
