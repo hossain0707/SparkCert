@@ -53,6 +53,7 @@ Most AI deployment documentation stops at "the model runs." SparkCert focuses on
 | [Verification ledger](docs/VERIFICATION.md) | Test evidence, manual hardware / OS validation matrix |
 | [Development roadmap](docs/PRODUCT_ROADMAP.md) | Production hardening and milestones |
 | [Workspace handover](docs/WORKSPACE_HANDOFF.md) | Canonical handoff for another computer or coding agent |
+| [Repository About metadata](docs/REPOSITORY_PROFILE.md) | Description, suggested GitHub topics and setup instructions |
 | [Continue in new workspace](docs/CONTINUE_IN_NEW_WORKSPACE.md) | Reusable development prompt and continuity checklist |
 
 ---
@@ -186,3 +187,7 @@ See `docs/PRODUCT_ROADMAP.md` for production hardening and supported scope. For 
 Copyright © 2026 Md Najmul Hossain.
 
 SparkCert is an independent proof-of-concept / MVP and is not affiliated with or endorsed by NVIDIA Corporation. DGX and NVIDIA are trademarks of their respective owners. No open-source license is granted by this release; add a selected `LICENSE` file before public distribution or accepting external contributions.
+
+## Repository presentation & About
+
+Suggested GitHub description, discoverability topics and sidebar configuration are recorded in [docs/REPOSITORY_PROFILE.md](docs/REPOSITORY_PROFILE.md). GitHub's **About** panel is managed through repository settings and is not automatically populated by README markdown.
