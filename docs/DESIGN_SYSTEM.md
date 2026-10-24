@@ -52,3 +52,14 @@ This is a design/engineering contract, not an instruction to invent simulated GP
 - Add storybook-style design states or screenshot fixtures and automated Playwright tests.
 - Add first-run onboarding, real connection state machine, accessible success/error logs, and cancelable operations.
 - Provide real longitudinal charts only once time-series GPU telemetry exists; label sample/demo measurements explicitly.
+
+
+## GitHub README visual language — 2026-10-25
+
+- Treat \`assets/sparkcert-hero.svg\` as the canonical branded repository banner.
+- Treat \`assets/sparkcert-workflow-animated.svg\` as an **illustrative workflow**, not a measured UI video.
+- Treat \`assets/sparkcert-architecture.svg\` as an implementation-faithful visual; update when the actual trust boundaries or components change.
+- Keep product claims consistent with \`docs/PROJECT_STATUS.md\` and \`docs/VERIFICATION.md\`; use explicit MVP labels and no invented live metrics.
+- SVG animation is subtle, looping and CSS-only with \`prefers-reduced-motion\` fallback. Do not use remote trackers or external assets.
+- Use descriptive \`alt\` text, internal navigation, legible typography, adequate contrast and mobile-friendly widths.
+- When adding a **real** GIF/video in future, capture the actual working UI and label platform, test environment, and demo data source.
