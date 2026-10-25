@@ -35,7 +35,7 @@ def list_sources():
 
 def main():
     parser = argparse.ArgumentParser(description="Package safe SparkCert source handoff")
-    parser.add_argument("--output", type=Path, default=ROOT.parent / "SparkCert-v0.1.0-handoff-20261025.zip")
+    parser.add_argument("--output", type=Path, default=ROOT.parent / "SparkCert-v0.2.0-source-handoff-20261025.zip")
     args = parser.parse_args()
     target = args.output.resolve()
     if ROOT in target.parents or target == ROOT:
@@ -44,8 +44,8 @@ def main():
     files = list_sources()
     checksums = {str(f.relative_to(ROOT)).replace(os.sep, "/"): hashlib.sha256(f.read_bytes()).hexdigest() for f in files}
     manifest = {
-        "project": "SparkCert", "version": "0.1.0", "snapshot_date": "2026-10-25",
-        "release_status": "local-first MVP; hardware/distribution/production unverified",
+        "project": "SparkCert", "version": "0.2.0", "snapshot_date": "2026-10-25",
+        "release_status": "v0.2.0 development candidate; CI successful, physical DGX Spark/production validation outstanding",
         "owner": "Md Najmul Hossain", "root_folder": "SparkCert",
         "source_files": checksums,
         "excluded_runtime_data": "SSH configs/keys, credentials, .env, databases, logs, virtualenvs, build output",

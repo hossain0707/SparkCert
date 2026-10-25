@@ -2,7 +2,7 @@
 
 # Continue SparkCert development
 
-**Project:** [hossain0707/SparkCert](https://github.com/hossain0707/SparkCert) · **Owner:** Md Najmul Hossain · **Current state:** v0.1.0 development MVP.
+**Project:** [hossain0707/SparkCert](https://github.com/hossain0707/SparkCert) · **Owner:** Md Najmul Hossain · **Current state:** v0.2.0 development candidate (13 GitHub CI jobs passed, physical hardware acceptance outstanding).
 
 This file is the short entry point for a new machine, ChatGPT workspace, Codex agent, or collaborator. **Do not restart or rewrite from a blank project.** The repository includes an executable MVP, not a release-verified commercial application.
 
@@ -30,7 +30,9 @@ python -m sparkcert
 
 ## What is already real
 
-Local-first browser/optional pywebview workbench, OpenSSH profiles/aliases, key/agent/strict host-key transport, read-only diagnostics, limited real HTTP model checks, SQLite evidence records and PDF exports. It is a working codebase, **but not verified on an actual DGX Spark or clean signed installer release**.
+Local-first browser/optional pywebview workbench, OpenSSH profiles/aliases, key/agent/strict host-key transport, read-only diagnostics, opt-in bounded transfer, private SSH tunnel management, limited measured HTTP model checks with concurrency, SQLite evidence integrity/retention/audit and PDF exports. It is a working codebase, **but not verified on an actual DGX Spark or clean signed installer release**.
+
+For installation and security review, see `docs/INSTALLATION.md`, `docs/SECURITY_MODEL.md`, `docs/RELEASE_CHECKLIST.md`. The release remains unsigned and not hardware-certified.
 
 ## Next milestone
 
