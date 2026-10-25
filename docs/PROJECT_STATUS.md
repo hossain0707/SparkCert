@@ -17,7 +17,7 @@
 | Infrastructure readiness | Seven explicit prerequisite checks with real-result report recording | Thresholds are **project heuristics**, not official NVIDIA standards |
 | LLM evaluation | OpenAI-compatible chat API, 4 defined probes + custom cases, repetition 1–3, concurrency 1–4, p50/p95 latency | MockTransport tests; useful for comparison, **not an audited performance/robustness benchmark** |
 | Persistence and reporting | SQLite, PDF evidence, result JSON SHA-256 check, delete/retention, local non-content audit events | Tests pass; digest not an independent digital signature; no encryption/RBAC |
-| Build automation | Cross-OS Python test matrix, unsigned PyInstaller build candidates, SBOM and pip-audit workflow definitions | 13 GitHub Actions jobs passed on run 40145092403; build artifacts remain unsigned and not installed on clean target hardware |
+| Build automation | Cross-OS Python test matrix, unsigned PyInstaller build candidates, SBOM and pip-audit workflow definitions | 13 GitHub CI jobs passed on run 40145092403; artifacts remain unsigned and require clean-machine acceptance |
 | Documentation and GitHub presentation | README visuals/animation, architecture diagram, handover, tests, developer instructions | Screenshots are explicitly mock-data previews; existing GitHub metadata may require owner sidebar edit |
 
 ## Open production release gates (must not be called complete)
@@ -48,4 +48,16 @@ For new workspaces start with `docs/HANDOVER_START_HERE.md` and `docs/WORKSPACE_
 
 ## 2026-10-25 — GitHub-hosted CI evidence
 
-GitHub Actions run [40145092403](https://github.com/hossain0707/SparkCert/actions/runs/40145092403) completed **successfully** against commit `0d381b95de6eb6f2d2715c0de1f6bb2972efe23d`. Thirteen jobs passed: Python/JavaScript tests on Windows, macOS and Ubuntu with Python 3.11, 3.12 and 3.13 (nine combinations); a pip-audit/SBOM job; and unsigned desktop build jobs on each OS (three). Artifacts were produced: Windows, macOS, Linux build candidates and an SBOM. These results establish CI **buildability and automated test portability**, not installer usability on clean machines, signed distribution, actual physical DGX Spark connectivity or independent penetration testing. The workflow source does not contain macOS notarization/Windows Authenticode signing. Subsequent documentation-only commits trigger additional runs and do not change this feature validation baseline.
+GitHub Actions run [40145092403](https://github.com/hossain0707/SparkCert/actions/runs/40145092403) completed **successfully** against commit `0d381b95de6eb6f2d2715c0de1f6bb2972efe23d`. Thirteen jobs passed: Python and JavaScript tests on Windows, macOS and Ubuntu across Python 3.11, 3.12 and 3.13 (nine combinations); pip-audit/SBOM; and unsigned desktop builds on Windows, macOS and Ubuntu (three). Build candidates and an SBOM were uploaded as workflow artifacts. CI buildability is not equivalent to validated, signed installations or actual DGX Spark end-to-end acceptance.
+
+## 2026-10-25 — Cross-platform package distribution work (v0.2.1b1)
+
+- Added branded desktop icon generation from local Pillow shapes for Windows ICO, macOS ICNS and PNG desktop menus; icons are produced by `scripts/generate_icons.py` within CI.
+- Updated native desktop boot sequence to retain a loopback socket until Uvicorn takes ownership; waits for server startup before opening the window; shuts down server on window close.
+- Added `--package-self-check` to the desktop binary. It checks bundled FastAPI routes/imports and static UI assets *without connecting to a physical device or displaying a window*. The CI packaging jobs execute this against the frozen binary.
+- Added a Windows Inno Setup **per-user** EXE installer and portable ZIP, separate Apple silicon/Intel unsigned DMGs, Ubuntu 24.04 `.deb` package and portable Linux tarball.
+- All release assets must be present and pass packaged-import checks before a public **pre-release** is created by CI. The release includes `SHA256SUMS.txt` and is not marked stable. Independent clean-device QA and signing/notarization remain explicitly incomplete.
+- Replaced README with product-centered visual showcase, platform download table, first-connection flow, architecture, actual feature matrix, preview screenshots and continuity links.
+- Local development baseline is updated with dedicated package-self-check tests. Hardware validation remains **not done**.
+
+**Do not call this release production-ready** solely because binary packaging and import smoke tests succeed. Review `docs/RELEASE_CHECKLIST.md` and `docs/INSTALLATION.md`.

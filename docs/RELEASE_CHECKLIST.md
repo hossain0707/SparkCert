@@ -41,3 +41,16 @@ This checklist is a **release gate**, not a promise that features are production
 ## Distribution policy
 
 The CI artifacts are **unsigned build candidates**. They may be used by the owner for controlled QA, but are not recommended as customer production installers. Do not create an official stable GitHub Release until the hardware, security and distribution gates are documented.
+
+## Distribution pipeline improvements — v0.2.1b1 (pending CI result)
+
+- [x] Windows Inno Setup installer definition and portable archive recipe committed to local source.
+- [x] Separate Intel/Apple Silicon macOS unsigned DMG recipes and Ubuntu x64 DEB/portable tarball recipes authored.
+- [x] Local baseline packaging-source tests added; frozen import/asset check harness authored.
+- [x] Preview-release publication gated on tests, audits, all platform artifacts and SHA256SUMS generation in CI definition.
+- [ ] Confirm the new GitHub CI run executed with all build and package-check jobs successful.
+- [ ] Confirm release assets downloadable, checksum file consistent and correct OS binaries included.
+- [ ] Run each installer on a clean real target OS and smoke test full UI/SSH.
+- [ ] Secure Windows signature, Apple Developer ID + notarization, independent audit, device/network acceptance and clear legal distribution license decision.
+
+**NB:** Developer previews are unsigned and intended for controlled testing, not organizational production deployment.

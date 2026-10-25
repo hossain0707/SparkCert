@@ -22,3 +22,7 @@ When continuing, append date, GitHub commit, tests executed, OS/DGX Spark versio
 - `.github/workflows/ci.yml`: multi-OS Python test and build candidates, security audit/SBOM job; workflow itself not remotely verified.
 - `tests/test_v02.py`, `scripts/ui_smoke.py`: six new automated tests and an offline Chromium UI smoke test (mock-only).
 - No physical hardware connection, production signing, external audit or release publication.
+
+## 2026-10-25 — Desktop downloads and release workflow
+
+Implemented separate Windows installer/portable archive, macOS Intel/Apple Silicon DMG build recipes, and Linux Ubuntu DEB/portable tarball build recipes. CI now requires packaged-import checks plus the baseline tests/audit before publishing an unsigned GitHub preview release with SHA256SUMS. Strengthened the embedded Uvicorn startup/shutdown sequence and introduced a deterministic icon generator. Reorganized README with an obvious OS download matrix, previews, and architecture. Any real signing, notarization, installation/hardware tests and external audit remain **unverified** until recorded with evidence.

@@ -68,4 +68,13 @@ No '100% production-ready' or external certification claim can be made on this e
 
 ## 2026-10-25 — GitHub-hosted CI evidence
 
-GitHub Actions run [40145092403](https://github.com/hossain0707/SparkCert/actions/runs/40145092403) completed **successfully** against commit `0d381b95de6eb6f2d2715c0de1f6bb2972efe23d`. Thirteen jobs passed: Python/JavaScript tests on Windows, macOS and Ubuntu with Python 3.11, 3.12 and 3.13 (nine combinations); a pip-audit/SBOM job; and unsigned desktop build jobs on each OS (three). Artifacts were produced: Windows, macOS, Linux build candidates and an SBOM. These results establish CI **buildability and automated test portability**, not installer usability on clean machines, signed distribution, actual physical DGX Spark connectivity or independent penetration testing. The workflow source does not contain macOS notarization/Windows Authenticode signing. Subsequent documentation-only commits trigger additional runs and do not change this feature validation baseline.
+GitHub Actions run [40145092403](https://github.com/hossain0707/SparkCert/actions/runs/40145092403) completed **successfully** against commit `0d381b95de6eb6f2d2715c0de1f6bb2972efe23d`. Thirteen jobs passed: Python and JavaScript tests on Windows, macOS and Ubuntu across Python 3.11, 3.12 and 3.13 (nine combinations); pip-audit/SBOM; and unsigned desktop builds on Windows, macOS and Ubuntu (three). Build candidates and an SBOM were uploaded as workflow artifacts. CI buildability is not equivalent to validated, signed installations or actual DGX Spark end-to-end acceptance.
+
+
+## 2026-10-25 — v0.2.1b1 packaging source checks
+
+- Local Linux Python 3.13: `python -m pytest -q` -> **17 passed**; `node --check web/app.js` -> pass; `python -m compileall -q sparkcert scripts tests` -> pass.
+- `tests/test_packaging.py` validates the application import/static-asset self-check harness with a simulated webview import; does not validate native GUI initialization.
+- Pillow-generated ICO/ICNS/PNG files inspected and parsed locally; icons will be regenerated in each packaging runner.
+- GitHub Actions includes four OS packaging jobs and a gated pre-release publishing job; verify execution results separately after the next `main` push. CI success must not be pre-populated.
+- Clean-machine install tests, actual DGX Spark SSH/cable/VPN/inference, signing/notarization and security acceptance remain **NOT EXECUTED**.

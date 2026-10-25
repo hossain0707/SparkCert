@@ -19,7 +19,7 @@
 - **No fabricated benchmark results, false connected/offline indicators, or official NVIDIA/regulatory certification claims.**
 - Preserve local-first architecture and localhost-only backend; no public exposure of SSH or local HTTP ports by default.
 - Never disable OpenSSH host-key verification or store passwords, private keys, service credentials, tokens or personally identifiable sample data in git.
-- No shell injection, arbitrary user-supplied remote scripts, destructive SSH commands, auto-reset or privileged agent install. Reviewed v0.2 bounded upload/download is permitted only through its fixed helper, explicit consent, safe destinations and test coverage; additional remote mutation needs a separately reviewed design.
+- No shell injection, arbitrary remote scripts, destructive SSH commands, auto-reset, agent install or remote file mutation without separately reviewed design, explicit consent, safeguards and tests.
 - DGX Spark remote access relies on existing Ethernet/LAN/private VPN, available SSH account and verified host fingerprint; it cannot recover a device that is offline/unbootable solely via SSH.
 - Preserve distinction between architecture *implemented today* and capabilities *planned for later*.
 - Use free and open-source development tools where possible. No paid service without authorization.

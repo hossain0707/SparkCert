@@ -1,4 +1,4 @@
-name: SparkCert CI and OS Build Candidates
+name: SparkCert - Tests, Desktop Packages and Preview Release
 
 on:
   push:
@@ -11,13 +11,13 @@ permissions:
 
 jobs:
   test:
-    name: Python tests / JS parse (${{ matrix.os }}, ${{ matrix.python }})
+    name: Tests (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-24.04, windows-2022, macos-15-intel]
         python: ['3.11', '3.12', '3.13']
-    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -27,77 +27,161 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install development dependencies
-        run: python -m pip install -e '.[dev]'
-      - name: Python tests
-        run: python -m pytest -q
-      - name: Browser application JavaScript syntax
-        run: node --check web/app.js
-      - name: Python source syntax
-        run: python -m compileall -q sparkcert
+      - run: python -m pip install -e '.[dev]'
+      - run: python -m pytest -q
+      - run: python -m compileall -q sparkcert
+      - run: node --check web/app.js
+      - run: python -m compileall -q scripts
 
-  source-security:
-    name: Dependency and source inventory
-    runs-on: ubuntu-latest
+  security:
+    name: Dependency audit and SBOM
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install runtime and dependency-audit utilities
-        run: python -m pip install -e . pip-audit cyclonedx-bom
-      - name: Dependency vulnerability audit
-        run: python -m pip_audit
-      - name: Create CycloneDX SBOM
-        run: cyclonedx-py environment -o sbom.json --output-format JSON
+      - run: python -m pip install -e . pip-audit cyclonedx-bom
+      - run: python -m pip_audit
+      - run: cyclonedx-py environment -o sbom.json --output-format JSON
       - uses: actions/upload-artifact@v4
         with:
           name: SparkCert-SBOM
           path: sbom.json
           retention-days: 30
 
-  desktop:
-    needs: test
-    name: Unsigned desktop build candidate (${{ matrix.os }})
+  package:
+    name: Packaging (${{ matrix.id }})
+    needs: [test, security]
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
-    runs-on: ${{ matrix.os }}
+        include:
+          - { id: windows-x64, os: windows-2022, platform: windows }
+          - { id: macos-intel, os: macos-15-intel, platform: macos }
+          - { id: macos-arm64, os: macos-15, platform: macos }
+          - { id: linux-x64, os: ubuntu-24.04, platform: linux }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: pip
-      - name: Linux webview prerequisites
+      - name: Linux GTK/WebKit GUI dependencies
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
+          sudo apt-get update -q
           sudo apt-get install -y libgtk-3-0 libwebkit2gtk-4.1-0 gir1.2-webkit2-4.1 xvfb
-      - name: Install optional desktop toolchain
-        run: python -m pip install -e '.[desktop]'
-      - name: Build application
+      - name: Install desktop build toolchain
+        run: python -m pip install -e '.[desktop]' pillow
+      - name: Generate platform icons
+        run: python scripts/generate_icons.py
+      - name: Build self-contained desktop application
         shell: bash
         run: |
           python -m PyInstaller --noconfirm --clean --windowed --onedir \
             --name SparkCert \
+            --icon "assets/sparkcert-icon.${{ matrix.platform == 'windows' && 'ico' || matrix.platform == 'macos' && 'icns' || 'png' }}" \
             --add-data 'web:web' \
             --collect-all uvicorn \
             --collect-all webview \
             --hidden-import sparkcert.app \
             desktop_launcher.py
-      - name: Produce macOS DMG (unsigned)
+      - name: Windows packaged import and asset test
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & "dist\SparkCert\SparkCert.exe" --package-self-check "${{ github.workspace }}\dist\package-check.json"
+          if ($LASTEXITCODE -ne 0) { throw "Packaged binary test failed: $LASTEXITCODE" }
+          $test = Get-Content dist/package-check.json -Raw | ConvertFrom-Json
+          if (-not $test.ok) { throw "Packaged binary check failed" }
+      - name: macOS/Linux packaged import and asset test
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          if [[ "${{ runner.os }}" == 'macOS' ]]; then
+            ./dist/SparkCert.app/Contents/MacOS/SparkCert --package-self-check "${{ github.workspace }}/dist/package-check.json"
+          else
+            ./dist/SparkCert/SparkCert --package-self-check "${{ github.workspace }}/dist/package-check.json"
+          fi
+          python -c 'import json; assert json.load(open("dist/package-check.json"))["ok"]'
+      - name: Build Windows portable ZIP and per-user EXE installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/release | Out-Null
+          Compress-Archive -Path dist/SparkCert -DestinationPath dist/release/SparkCert-Portable-Windows-x64.zip -CompressionLevel Optimal
+          choco install innosetup --yes --no-progress
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "installer\SparkCert.iss"
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup packaging failed' }
+      - name: Create macOS Applications-ready unsigned DMG
         if: runner.os == 'macOS'
         shell: bash
-        run: hdiutil create -volname SparkCert -srcfolder dist/SparkCert.app -ov -format UDZO dist/SparkCert-macOS.dmg
-      - name: Upload unsigned build candidates
+        run: |
+          mkdir -p dist/release dist/dmg-stage
+          cp -R dist/SparkCert.app dist/dmg-stage/
+          ln -s /Applications dist/dmg-stage/Applications
+          if [[ "${{ matrix.id }}" == 'macos-arm64' ]]; then label=Apple-Silicon; else label=Intel; fi
+          hdiutil create -volname 'SparkCert Preview' -srcfolder dist/dmg-stage -ov -format UDZO "dist/release/SparkCert-macOS-${label}.dmg"
+      - name: Build Ubuntu DEB and portable Linux package
+        if: runner.os == 'Linux'
+        shell: bash
+        run: bash scripts/package_linux.sh
+      - name: Upload packaged downloads
         uses: actions/upload-artifact@v4
         with:
-          name: SparkCert-build-${{ runner.os }}
-          path: |
-            dist/SparkCert/
-            dist/SparkCert.app/
-            dist/SparkCert-macOS.dmg
-          retention-days: 14
+          name: SparkCert-package-${{ matrix.id }}
+          path: dist/release/*
+          retention-days: 30
           if-no-files-found: error
+      - name: Upload package import check
+        uses: actions/upload-artifact@v4
+        with:
+          name: SparkCert-package-check-${{ matrix.id }}
+          path: dist/package-check.json
+          retention-days: 30
+
+  preview-release:
+    name: Publish unsigned preview downloads
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [test, security, package]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: SparkCert-package-*
+          path: release-assets
+          merge-multiple: true
+      - name: Verify all OS downloads are present and generate SHA-256 checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-assets
+          for f in \
+            SparkCert-Setup-Windows-x64.exe \
+            SparkCert-Portable-Windows-x64.zip \
+            SparkCert-macOS-Apple-Silicon.dmg \
+            SparkCert-macOS-Intel.dmg \
+            SparkCert-Linux-Ubuntu-x64.deb \
+            SparkCert-Portable-Linux-x64.tar.gz; do
+              test -s "$f" || { echo "Missing release package: $f"; exit 1; }
+          done
+          sha256sum SparkCert-* > SHA256SUMS.txt
+          ls -lah
+      - name: Create versioned development preview release (never marked stable)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="v0.2.1-preview.${GITHUB_RUN_NUMBER}"
+          gh release create "$tag" release-assets/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "SparkCert v0.2.1 · Unsigned Developer Preview #${GITHUB_RUN_NUMBER}" \
+            --notes-file docs/PREVIEW_RELEASE_NOTES.md

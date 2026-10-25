@@ -181,4 +181,34 @@ SparkCert is a cross-platform control plane for verifiable local AI readiness: *
 
 ## 2026-10-25 — GitHub-hosted CI evidence
 
-GitHub Actions run [40145092403](https://github.com/hossain0707/SparkCert/actions/runs/40145092403) completed **successfully** against commit `0d381b95de6eb6f2d2715c0de1f6bb2972efe23d`. Thirteen jobs passed: Python/JavaScript tests on Windows, macOS and Ubuntu with Python 3.11, 3.12 and 3.13 (nine combinations); a pip-audit/SBOM job; and unsigned desktop build jobs on each OS (three). Artifacts were produced: Windows, macOS, Linux build candidates and an SBOM. These results establish CI **buildability and automated test portability**, not installer usability on clean machines, signed distribution, actual physical DGX Spark connectivity or independent penetration testing. The workflow source does not contain macOS notarization/Windows Authenticode signing. Subsequent documentation-only commits trigger additional runs and do not change this feature validation baseline.
+GitHub Actions run [40145092403](https://github.com/hossain0707/SparkCert/actions/runs/40145092403) completed **successfully** against commit `0d381b95de6eb6f2d2715c0de1f6bb2972efe23d`. Thirteen jobs passed: Python and JavaScript tests on Windows, macOS and Ubuntu across Python 3.11, 3.12 and 3.13 (nine combinations); pip-audit/SBOM; and unsigned desktop builds on Windows, macOS and Ubuntu (three). Build candidates and an SBOM were uploaded as workflow artifacts. CI buildability is not equivalent to validated, signed installations or actual DGX Spark end-to-end acceptance.
+
+## 2026-10-25 — Build/distribution handover (v0.2.1b1)
+
+Canonical source: `https://github.com/hossain0707/SparkCert`, branch `main`; start at `START_HERE.md`, `AGENTS.md` and this file.
+
+### Changes
+
+- `.github/workflows/ci.yml`: automated 3×3 Python OS matrix, source dependency audit/SBOM, four packaging runners (Windows x64, macOS Intel, macOS Apple silicon, Ubuntu x64), packaged self-check, release checksum generation, publication as a **GitHub prerelease** with unique run-number tag. Releases are only published after required jobs pass and include platform-specific binaries.
+- `installer/SparkCert.iss`: per-user Windows setup (no admin privileges, Start Menu shortcut), no code signing.
+- `scripts/package_linux.sh`: Ubuntu 24.04 `.deb` with declared GTK/WebKit/OpenSSH dependencies and portable `.tar.gz`.
+- `scripts/generate_icons.py`: deterministic icon generation, build-only Pillow, outputs PNG/ICO/ICNS.
+- `desktop_launcher.py`: `--package-self-check <JSON file>` tests frozen runtime imports, bundled assets and FastAPI route without a real GUI or SSH.
+- `sparkcert/__main_desktop__.py`: fixed start/stop handling and ready-before-show window behavior.
+- `README.md`, `docs/INSTALLATION.md`, `docs/PREVIEW_RELEASE_NOTES.md`, `docs/PROJECT_STATUS.md`: updated beginner download experience and accurate unverified gates.
+- `tests/test_packaging.py`: smoke-check unit tests (mock webview only in local unit suite).
+
+### What each test does **not** establish
+
+- CI-hosted macOS/Windows/Linux tests do not validate an actual desktop session on ordinary hardware, permissions, driver or WebView2 setup, or real physical DGX Spark connectivity.
+- Frozen packaged import smoke checks do not run full GUI or user flows.
+- `SHA256SUMS.txt` is an unsigned checksum listing; no artifact signing/notarization, enterprise penetration test or regulated safety assessment has occurred.
+- Releases are a **developer preview**, not stable. Keep release notes, GitHub About, and README accurate.
+
+### How to continue
+
+1. Inspect the newest `main` commit and CI run; verify all packaging jobs and a preview Release with six platform assets and SHA256SUMS exist.
+2. If CI packaging fails, read job logs; preserve existing files and explicitly fix platform-specific PyInstaller/GTK/Inno installer issues before re-running.
+3. On real Windows/macOS/Linux systems, install the appropriate unsigned preview only with permission and document the behavior, host key verification, DGX Spark SSH/diagnostics/tunnel/evaluation results, uninstall and error paths.
+4. Obtain developer signing certificates and Apple Developer notarization setup; test update/uninstall/rollbacks and revisit license/trademark/privacy threat review.
+5. Once verified, update the release checklist with actual evidence and prepare a separately labeled stable release. Do not extrapolate from mocked tests.
