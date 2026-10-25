@@ -1,3 +1,5 @@
+> **Current snapshot: v0.2.0 development candidate (2026-10-25).** Localhost-only SSH tunnels, bounded 16 MiB file transfer, limited concurrency/repeated LLM probes, retention and local audit events are now implemented **at development level**. Source tests pass (15 tests); cross-platform real hardware tests, installer signing, dependency audit execution, policy calibration, data encryption and external security review are NOT complete. Older v0.1 roadmap sections below are historical. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the authoritative feature matrix.
+
 # SparkCert engineering, validation and release roadmap
 
 ## Current deliverable status — v0.1.0
