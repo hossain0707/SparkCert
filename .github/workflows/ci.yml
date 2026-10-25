@@ -92,10 +92,17 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          & "dist\SparkCert\SparkCert.exe" --package-self-check "${{ github.workspace }}\dist\package-check.json"
-          if ($LASTEXITCODE -ne 0) { throw "Packaged binary test failed: $LASTEXITCODE" }
-          $test = Get-Content dist/package-check.json -Raw | ConvertFrom-Json
-          if (-not $test.ok) { throw "Packaged binary check failed" }
+          $exe = (Resolve-Path "dist\SparkCert\SparkCert.exe").Path
+          $report = Join-Path (Get-Location) "dist\package-check.json"
+          # Windows GUI executables may return immediately when launched with &.
+          # Wait for the packaged binary and read its structured self-check report.
+          $proc = Start-Process -FilePath $exe -ArgumentList @('--package-self-check', $report) -Wait -PassThru
+          if (-not (Test-Path $report)) { throw "Packaged binary did not create its self-check report" }
+          $test = Get-Content $report -Raw | ConvertFrom-Json
+          if ($proc.ExitCode -ne 0 -or -not $test.ok) {
+            Write-Host ($test | ConvertTo-Json -Depth 4)
+            throw "Packaged import test failed with exit code $($proc.ExitCode)"
+          }
       - name: macOS/Linux packaged import and asset test
         if: runner.os != 'Windows'
         shell: bash
@@ -131,7 +138,7 @@ jobs:
       - name: Upload packaged downloads
         uses: actions/upload-artifact@v4
         with:
-          name: SparkCert-package-${{ matrix.id }}
+          name: SparkCert-distribution-${{ matrix.id }}
           path: dist/release/*
           retention-days: 30
           if-no-files-found: error
@@ -153,7 +160,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          pattern: SparkCert-package-*
+          pattern: SparkCert-distribution-*
           path: release-assets
           merge-multiple: true
       - name: Verify all OS downloads are present and generate SHA-256 checksums
