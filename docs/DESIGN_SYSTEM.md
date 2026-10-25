@@ -63,3 +63,13 @@ This is a design/engineering contract, not an instruction to invent simulated GP
 - SVG animation is subtle, looping and CSS-only with \`prefers-reduced-motion\` fallback. Do not use remote trackers or external assets.
 - Use descriptive \`alt\` text, internal navigation, legible typography, adequate contrast and mobile-friendly widths.
 - When adding a **real** GIF/video in future, capture the actual working UI and label platform, test environment, and demo data source.
+
+
+## v0.2.0 UI additions (2026-10-25)
+
+- **Connections** includes opt-in localhost-only tunnel controls and clear status wording; a listening tunnel is not a confirmed model service.
+- **File browser** adds operator-approved bounded file uploads and downloads; avoid overwrite via unique remote names and a private upload directory.
+- **AI Evaluations** exposes controlled repetitions/concurrency with measured p50/p95; never simulate hardware results.
+- **Settings & Security** exposes local audit and confirmed irreversible retention controls.
+- `docs/assets/v02-*` screenshots show mocked UI state only, not real DGX Spark connectivity.
+- Dedicated accessibility, screen-reader and color-contrast testing remains a release gate.
