@@ -1,3 +1,5 @@
+> **Current implementation differs from initial design:** v0.2 source has basic SSH tunnel management, guarded uploads/downloads and evidence controls. See `docs/PROJECT_STATUS.md` before interpreting any planned features below.
+
 # SparkCert product requirements and complete feature vision
 
 **Owner:** Md Najmul Hossain · **Product category:** local-first enterprise AI production-readiness assessment software · **Target:** NVIDIA DGX Spark first, SSH-managed Linux AI hosts second · **Snapshot:** 2026-10-25.
