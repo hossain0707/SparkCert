@@ -177,3 +177,8 @@ SparkCert is a cross-platform control plane for verifiable local AI readiness: *
 - Do not publish a production release solely based on passing mocked integration tests.
 - Persist only SSH profile references, bounded model outputs and local audit metadata, not credentials.
 - Keep README SVG animation truthful and accessible; no fake live state. Update diagram when a new component actually ships.
+
+
+## 2026-10-25 — GitHub-hosted CI evidence
+
+GitHub Actions run [40145092403](https://github.com/hossain0707/SparkCert/actions/runs/40145092403) completed **successfully** against commit `0d381b95de6eb6f2d2715c0de1f6bb2972efe23d`. Thirteen jobs passed: Python/JavaScript tests on Windows, macOS and Ubuntu with Python 3.11, 3.12 and 3.13 (nine combinations); a pip-audit/SBOM job; and unsigned desktop build jobs on each OS (three). Artifacts were produced: Windows, macOS, Linux build candidates and an SBOM. These results establish CI **buildability and automated test portability**, not installer usability on clean machines, signed distribution, actual physical DGX Spark connectivity or independent penetration testing. The workflow source does not contain macOS notarization/Windows Authenticode signing. Subsequent documentation-only commits trigger additional runs and do not change this feature validation baseline.
