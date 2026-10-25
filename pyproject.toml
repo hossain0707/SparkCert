@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sparkcert"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local-first AI deployment readiness workbench for DGX Spark and SSH-managed Linux systems"
 requires-python = ">=3.11"
 dependencies = [

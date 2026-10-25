@@ -49,3 +49,15 @@ Every future material decision should be added as an immutable dated ADR, descri
 **Reason:** development must continue from any new workspace without losing architecture/design/feature history.
 
 **Trade-off:** archive is only a versioned snapshot; Git-based commits/synchronization remain a separate owner action.
+
+## ADR-007 · 2026-10-25 · Process-local private SSH tunnels (accepted for v0.2 dev)
+
+Expose opt-in OpenSSH port forwards bound to `127.0.0.1`, using strict known-host checking and existing aliases/key-agent configuration. Limit to four concurrent processes, close on request/device deletion/app exit, and avoid saving active processes as permanent settings. A listening forward is **not** an API health guarantee. Network errors and physical VPN tests remain outstanding.
+
+## ADR-008 · 2026-10-25 · Bound optional transfers rather than broad remote filesystem writes (accepted for v0.2 dev)
+
+Retain read-only file browsing. For explicit operator uploads, use a fixed remote Python3 helper and unique file names under `~/sparkcert-uploads` with restrictive permissions. Downloads are home-scoped; both directions limited to 16 MiB. Inputs are base64-encoded as data to fixed remote scripts; never use raw user shell syntax. Remote untrusted-filesystem races and real-device validation remain open. No arbitrary remote reset or model installer.
+
+## ADR-009 · 2026-10-25 · Measured latency and local evidence integrity (accepted for v0.2 dev)
+
+Provide bounded 1–3 repetitions and 1–4 concurrent model requests with observed p50/p95 latency; score per defined test case only. Save SHA-256 of serialized evidence, block PDF export if the saved checksum mismatches and allow explicit retention purges with content-free local audit events. Digest is not independent attestation, storage is not encrypted, and benchmarks remain exploratory.

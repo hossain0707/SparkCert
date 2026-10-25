@@ -6,7 +6,7 @@ const icon = (name, extra = '') => `<svg class="${extra}" aria-hidden="true"><us
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = value => value == null ? '—' : String(value);
 const when = iso => { try { return new Date(iso).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}); } catch {return iso;} };
-const state = {page:'overview',overview:{devices:[],recent_runs:[],device_count:0,run_count:0},devices:[],reports:[],aliases:[],cases:[], mode:'manual',selectedId:'',lastProbe:null,lastRun:null,filter:'all',fileView:null,working:false};
+const state = {page:'overview',overview:{devices:[],recent_runs:[],device_count:0,run_count:0},devices:[],reports:[],aliases:[],cases:[], mode:'manual',selectedId:'',lastProbe:null,lastRun:null,filter:'all',fileView:null,tunnels:[],audit:[],working:false};
 
 async function api(path, options={}) {
   const headers = {'X-SparkCert-Token':TOKEN, ...(options.body && !(options.body instanceof FormData) ? {'Content-Type':'application/json'}:{}),...options.headers};
@@ -32,15 +32,15 @@ const empty=(sym,title,desc,action='')=>`<div class="empty"><div class="empty-ic
 function scoreTag(score) {return `<span class="tag ${score>=80?'tag-good':score>=50?'tag-warn':'tag-bad'}">${score==null?'No score':`${Math.round(score)}% checks passed`}</span>`;}
 function ring(score) {return `<div class="score-ring" style="--percent:${Math.max(0,Math.min(100,score||0))}%"><strong>${score==null?'—':`${Math.round(score)}%`}</strong></div>`;}
 async function loadBase() {
-  const [overview,reports]=await Promise.all([api('/overview'),api('/reports')]);
-  state.overview=overview;state.devices=overview.devices;state.reports=reports;
+  const [overview,reports,tunnels,audit]=await Promise.all([api('/overview'),api('/reports'),api('/tunnels'),api('/audit')]);
+  state.overview=overview;state.devices=overview.devices;state.reports=reports;state.tunnels=tunnels;state.audit=audit;
   $('#nav-device-count').textContent=state.devices.length;
   $('#side-version').textContent=overview.version;
 }
 async function navigate(page) {
   state.page=page;
   document.querySelectorAll('[data-page]').forEach(e=>e.classList.toggle('active',e.dataset.page===page));
-  $('#breadcrumb-current').textContent=({overview:'Overview',connections:'Connections',evaluations:'AI Evaluations',reports:'Evidence Reports',about:'Settings & Security'})[page]||page;
+  $('#breadcrumb-current').textContent=({overview:'Overview',connections:'Connections',evaluations:'AI Evaluations',reports:'Evidence Reports',architecture:'Architecture',about:'Settings & Security'})[page]||page;
   $('#sidebar').classList.remove('open');
   if(page==='connections') await getAliases();
   if(page==='evaluations' && !state.cases.length) state.cases=await api('/evaluation/cases');
@@ -53,6 +53,7 @@ function render() {
   if(state.page==='evaluations') content.innerHTML=evaluationsPage();
   if(state.page==='reports') content.innerHTML=reportsPage();
   if(state.page==='about') content.innerHTML=aboutPage();
+  if(state.page==='architecture') content.innerHTML=architecturePage();
 }
 function metric(label,value,sub,sym) {return `<div class="card metric"><div class="metric-top"><span>${label}</span><div class="metric-icon">${icon(sym)}</div></div><div class="metric-value">${value}</div><div class="metric-sub">${sub}</div></div>`;}
 function deviceRow(d) {return `<div class="device-row"><div class="device-leading"><div class="device-icon">${icon('server')}</div><div><strong>${esc(d.name)}</strong><small>${esc(d.ssh_alias ? 'SSH alias: '+d.ssh_alias : d.username+'@'+d.host+':'+d.port)}</small></div></div><button class="btn btn-small" data-action="select-device" data-id="${esc(d.id)}">Open ${icon('arrow')}</button></div>`;}
@@ -90,13 +91,26 @@ function connectionsPage() {
       ${state.devices.length?`<div class="connection-list">${state.devices.map(d=>`<div class="connection-card"><div class="device-leading"><div class="device-icon">${icon('server')}</div><div><h3>${esc(d.name)}</h3><p>${esc(d.ssh_alias||`${d.username||'default user'}@${d.host}:${d.port}`)}</p></div></div><div class="connection-card-actions"><button class="icon-button" aria-label="Open SSH terminal" title="Open interactive SSH terminal" data-action="terminal" data-id="${esc(d.id)}">${icon('terminal')}</button><button class="icon-button" aria-label="Browse files" title="Browse remote home" data-action="browse" data-id="${esc(d.id)}">${icon('file')}</button><button class="icon-button" aria-label="Diagnostics" title="Connect and diagnose" data-action="probe" data-id="${esc(d.id)}">${icon('activity')}</button><button class="icon-button" aria-label="Readiness report" title="Run readiness assessment" data-action="readiness" data-id="${esc(d.id)}">${icon('shield')}</button><button class="icon-button" aria-label="Delete profile" title="Remove saved profile" data-action="delete-device" data-id="${esc(d.id)}">${icon('trash')}</button></div></div>`).join('')}</div>`:empty('server','No saved devices','Add your first Spark on the left. Device profiles never store SSH passwords or private key contents.')}
       <div class="hr"></div><div class="section-top"><h2 class="section-title">Connection inspection</h2>${selected?`<span class="tag tag-good">${esc(selected.name)}</span>`:''}</div>
       ${state.fileView ? fileBrowser(state.fileView) : state.lastProbe ? diagnostics(state.lastProbe) : selected?`<p class="help">Select the diagnostics button beside a device to run read-only health queries over SSH.</p>`: `<div class="info-ribbon">${icon('info')}<div><strong>First connection checklist</strong><p>Make sure SSH works in a terminal, trust the verified host fingerprint, and add your key to the SSH agent. This also works over a direct Ethernet cable when IP routing is configured.</p></div></div>`}
-      </section></div>`;
+      </section></div>${tunnelPanel()}`;
+}
+function tunnelPanel(){
+ const devices=state.devices;const existing=state.tunnels;
+ return `<section class="card top-space"><div class="section-top"><h2 class="section-title">Private model API tunnels</h2><span class="tag">SSH · LOCALHOST ONLY</span></div>
+ <p class="help">Forward a model API port from DGX Spark to your own computer. No public exposure or cloud relay. The remote model server must already be running. Tunnel connections are temporary and close when SparkCert exits.</p>
+ <form id="tunnel-form" class="form-grid top-space"><div class="field"><label for="tunnel-device">Saved SSH device</label><select id="tunnel-device" name="device_id" required><option value="">Choose a device</option>${devices.map(d=>`<option value="${esc(d.id)}" ${d.id===state.selectedId?'selected':''}>${esc(d.name)}</option>`).join('')}</select></div>
+ <div class="field"><label for="tunnel-port">Remote API port</label><input id="tunnel-port" name="remote_port" type="number" min="1" max="65535" value="8000" required /></div>
+ <div class="field"><label for="local-port">Local port</label><input id="local-port" name="local_port" type="number" min="0" max="65535" value="0" required /><span class="hint">0 = select free local port automatically</span></div>
+ <div class="field"><label>Security</label><p class="muted-sm">Uses verified OpenSSH host keys and agent authentication.</p></div>
+ <div style="grid-column:1/-1"><button type="submit" class="btn btn-primary" ${devices.length?'':'disabled'}>${icon('lock')} Start private tunnel</button></div></form>
+ <div class="top-space">${existing.length?existing.map(t=>`<div class="device-row"><div class="device-leading"><span class="check-icon pass">${icon('check')}</span><div><strong>${esc(t.device_name)} · Local ${esc(t.local_port)} → Remote ${esc(t.remote_port)}</strong><small>${esc(t.endpoint)} · SSH forward active; remote API readiness not verified</small></div></div><div class="connection-card-actions"><button class="btn btn-small" data-action="use-tunnel" data-id="${esc(t.id)}">Evaluate</button><button class="btn btn-small" data-action="stop-tunnel" data-id="${esc(t.id)}">Stop</button></div></div>`).join(''):empty('terminal','No managed tunnels','Select a saved SSH connection to create a private port forward.')}</div>
+ </section>`;
 }
 function fileBrowser(info) {
  const path=info.path||'.';const files=info.files||[];
  return `<div class="section-top"><h2 class="section-title">${icon('file')} Files in ~/${esc(path==='.'?'':path)}</h2><button class="btn btn-small" data-action="folder-up">Up folder</button></div>
- <p class="note">Read-only browsing of the connected account’s home directory. Maximum 300 entries per folder. File transfers are not included in this release.</p>
- <div class="connection-list" style="margin-top:12px">${files.length?files.map(f=>`<div class="device-row"><div class="device-leading"><div class="device-icon">${icon(f.type==='directory'?'server':'file')}</div><div><strong>${esc(f.name)}</strong><small>${esc(f.type)} · ${f.size==null?'Unknown size':esc(f.size)+' bytes'}</small></div></div>${f.type==='directory'?`<button class="btn btn-small" data-action="folder-enter" data-folder="${esc(f.name)}">Open ${icon('chevron')}</button>`:''}</div>`).join(''):empty('file','Empty folder','No accessible items in this folder.')}</div>`;
+ <p class="note">Home-scoped file browser, max 300 entries. Downloads are limited to 16 MiB and require Python 3 on the host. Uploads go to a dedicated ~/sparkcert-uploads directory with unique names (never overwrite existing files).</p>
+ <form id="upload-form" class="top-space"><label for="file-upload" class="muted-sm">Upload file to ~/sparkcert-uploads (maximum 16 MiB)</label><div class="connection-card-actions"><input type="file" id="file-upload" name="upload" required aria-label="Select file for secure SSH upload"/><button class="btn btn-small" type="submit">${icon('download')} Upload with SSH</button></div></form>
+ <div class="connection-list" style="margin-top:12px">${files.length?files.map(f=>`<div class="device-row"><div class="device-leading"><div class="device-icon">${icon(f.type==='directory'?'server':'file')}</div><div><strong>${esc(f.name)}</strong><small>${esc(f.type)} · ${f.size==null?'Unknown size':esc(f.size)+' bytes'}</small></div></div>${f.type==='directory'?`<button class="btn btn-small" data-action="folder-enter" data-folder="${esc(f.name)}">Open ${icon('chevron')}</button>`:f.type==='file'?`<button class="btn btn-small" data-action="download-file" data-filename="${esc(f.name)}">${icon('download')} Download</button>`:''}</div>`).join(''):empty('file','Empty folder','No accessible items in this folder.')}</div>`;
 }
 function diagnostics(probe) {
   const x=probe.health;return `<div class="data-grid"><div class="data-tile"><label>HOSTNAME</label><strong style="font-size:14px;overflow-wrap:anywhere">${esc(x.hostname)}</strong></div><div class="data-tile"><label>GPU UTILIZATION</label><strong>${x.gpu_util_pct==null?'—':esc(x.gpu_util_pct)+'%'}</strong></div><div class="data-tile"><label>GPU TEMP.</label><strong>${x.gpu_temp_c==null?'—':esc(x.gpu_temp_c)+'°C'}</strong></div><div class="data-tile"><label>RAM IN USE</label><strong>${x.memory_used_pct==null?'—':esc(x.memory_used_pct)+'%'}</strong></div><div class="data-tile"><label>DISK IN USE</label><strong>${x.disk_used_pct==null?'—':esc(x.disk_used_pct)+'%'}</strong></div><div class="data-tile"><label>MEMORY</label><strong>${esc(fmt(x.memory_gb))} <span>GiB</span></strong></div></div>
@@ -107,9 +121,10 @@ function evaluationsPage() {
   return `${head('Validation workspace','AI model evaluations','Measure live model behavior through an OpenAI-compatible endpoint. Test cases remain transparent.',button(`${icon('file')} View reports`,'to-reports'))}
     <div class="info-ribbon">${icon('info')}<div><strong>Actual inference results — no synthetic grades</strong><p>Connect an endpoint that is reachable from this computer. For private DGX Spark services, use a VPN or an SSH port-forward. Evaluation prompts and responses stay in your local SparkCert database; do not use sensitive prompts unless you trust the model endpoint.</p></div></div>
     <div class="grid-2"><section class="card"><div class="section-top"><h2 class="section-title">Evaluation target</h2><span class="tag">LIVE API</span></div>
-    <form id="eval-form"><div class="field"><label for="eval-endpoint">API base URL</label><input id="eval-endpoint" name="endpoint" value="http://127.0.0.1:8000/v1" placeholder="http://127.0.0.1:8000/v1" required /><span class="hint">Example: SSH forward port 8000, then point SparkCert at localhost:8000/v1</span></div>
+    <form id="eval-form"><div class="field"><label for="eval-endpoint">API base URL</label><input id="eval-endpoint" name="endpoint" value="${esc(state.tunnels[0]?.endpoint||'http://127.0.0.1:8000/v1')}" placeholder="http://127.0.0.1:8000/v1" required /><span class="hint">Example: SSH forward port 8000, then point SparkCert at localhost:8000/v1</span></div>
     <div class="field top-space"><label for="eval-model">Model identifier</label><input id="eval-model" name="model" placeholder="e.g. my-local-model" required /></div>
     <div class="field top-space"><label for="eval-key">API key (optional, never saved)</label><input id="eval-key" name="api_key" type="password" placeholder="Leave blank if endpoint has no key" autocomplete="off" /></div>
+    <div class="top-space form-grid"><div class="field"><label for="eval-repetitions">Repeat each test</label><select name="repetitions" id="eval-repetitions"><option value="1">1 request</option><option value="2">2 requests</option><option value="3">3 requests</option></select><span class="hint">Up to three repetitions per test</span></div><div class="field"><label for="eval-concurrency">Concurrent requests</label><select name="concurrency" id="eval-concurrency"><option value="1">Sequential (1)</option><option value="2">2 at a time</option><option value="4">4 at a time</option></select><span class="hint">Limited client-side load sample, not a benchmark certification</span></div></div>
     <div class="hr"></div><div class="section-top"><h2 class="section-title">Evaluation configuration</h2><span class="tag tag-good">${state.cases.length} CHECKS</span></div><div class="case-list">${state.cases.map((c,i)=>`<div class="case-card"><span class="case-index">${String(i+1).padStart(2,'0')}</span><div><strong>${esc(c.name)}</strong><small>${esc(c.category)} · ${esc(c.rule.replaceAll('_',' '))}</small></div><button class="icon-button" type="button" title="Remove check" data-action="remove-case" data-index="${i}">${icon('close')}</button></div>`).join('')}</div>
     <div class="top-space"><button type="button" class="btn" data-action="toggle-case">${icon('plus')} Add custom test case</button> <button type="button" class="btn btn-subtle" data-action="reset-cases">Reset checks</button></div>
     <div class="case-form top-space" id="case-form"><div class="form-grid"><div class="field"><label>Case name</label><input id="case-name" placeholder="Privacy constraint"/></div><div class="field"><label>Evaluation rule</label><select id="case-rule"><option value="exact">Exact match</option><option value="contains">Must contain</option><option value="not_contains">Must NOT contain</option><option value="json_key_value">JSON key=value</option></select></div></div><div class="field top-space"><label>System instruction</label><textarea id="case-system" placeholder="How should the model behave?"></textarea></div><div class="field top-space"><label>User prompt</label><textarea id="case-prompt" placeholder="What will you ask the model?"></textarea></div><div class="field top-space"><label>Expected text / JSON key=value</label><input id="case-expected" placeholder="SPARKCERT_READY" /></div><button type="button" class="btn btn-primary top-space" data-action="add-case">Save test case</button></div>
@@ -121,17 +136,26 @@ function evaluationsPage() {
 }
 function resultBlock(run) {
   const r=run.result;const checks=r.checks||r.cases||[];
-  return `<div class="result-hero">${ring(r.score)}<div><h3>${esc(r.summary)}</h3><p>${esc(r.scope)}</p><p>${esc(when(run.created_at))}</p></div></div><div class="checks">${checks.map(c=>`<div class="check-row"><div class="check-icon ${c.passed?'pass':'fail'}">${icon(c.passed?'check':'close')}</div><div style="min-width:0"><strong>${esc(c.name)}</strong><p>${esc(c.detail)}${c.latency_ms!=null?' · '+esc(c.latency_ms)+' ms':''}${c.error?' · '+esc(c.error):''}</p>${c.output?`<details style="margin-top:10px"><summary class="muted-sm" style="cursor:pointer">Inspect model response</summary><pre class="scroll-pre">${esc(c.output)}</pre></details>`:''}</div></div>`).join('')}</div><div class="top-space"><button class="btn" data-action="pdf-report" data-id="${esc(run.id)}">${icon('download')} Export PDF evidence</button></div>`;
+  return `<div class="result-hero">${ring(r.score)}<div><h3>${esc(r.summary)}</h3><p>${esc(r.scope)}</p><p>${esc(when(run.created_at))} · Evidence SHA-256: ${esc(run.integrity||'unverified')}</p>${r.requests_total!=null?`<p>${esc(r.requests_total)} requests · p50 ${esc(r.latency_p50_ms)} ms · p95 ${esc(r.latency_p95_ms)} ms · concurrency ${esc(r.concurrency)}</p>`:''}</div></div><div class="checks">${checks.map(c=>`<div class="check-row"><div class="check-icon ${c.passed?'pass':'fail'}">${icon(c.passed?'check':'close')}</div><div style="min-width:0"><strong>${esc(c.name)}</strong><p>${esc(c.detail)}${c.latency_ms!=null?' · median '+esc(c.latency_ms)+' ms':''}${c.latency_p95_ms!=null?' · p95 '+esc(c.latency_p95_ms)+' ms':''}${c.error?' · '+esc(c.error):''}</p>${c.output?`<details style="margin-top:10px"><summary class="muted-sm" style="cursor:pointer">Inspect model response</summary><pre class="scroll-pre">${esc(c.output)}</pre></details>`:''}</div></div>`).join('')}</div><div class="top-space"><button class="btn" data-action="pdf-report" data-id="${esc(run.id)}">${icon('download')} Export PDF evidence</button></div>`;
 }
 function reportsPage(){let runs=state.reports.filter(r=>state.filter==='all'||r.kind===state.filter);
   return `${head('Evidence library','Assessment reports','Locally stored test results and evidence-backed PDF exports.',button(`${icon('refresh')} Refresh`,'reload-reports'))}
   <div class="toolbar"><div class="segmented"><button class="${state.filter==='all'?'selected':''}" data-action="report-filter" data-filter="all">All</button><button class="${state.filter==='infrastructure'?'selected':''}" data-action="report-filter" data-filter="infrastructure">Infrastructure</button><button class="${state.filter==='model_behavior'?'selected':''}" data-action="report-filter" data-filter="model_behavior">Model evaluations</button></div><span class="muted-sm">${runs.length} assessments</span></div>
-  ${runs.length?runs.map(r=>`<div class="report-card"><div class="device-leading"><div class="report-icon">${icon('file')}</div><div><strong>${esc(r.kind==='infrastructure'?'Infrastructure readiness':'AI model behavior')} <span class="muted2"> / ${esc(r.device_name)}</span></strong><p>${esc(when(r.created_at))} · ${esc(r.id.slice(0,8))} · ${esc(r.result.summary||'Completed')}</p></div></div><div class="report-actions"><span class="scores">${esc(r.score)}%</span><button class="btn btn-small" data-action="show-report" data-id="${esc(r.id)}">Details</button><button class="icon-button" data-action="pdf-report" aria-label="Export PDF" title="Export PDF" data-id="${esc(r.id)}">${icon('download')}</button></div></div>`).join(''):empty('file','No matching assessments','Completed tests will be saved here. Run your first infrastructure or model evaluation.',button('New evaluation','to-evaluations','btn-primary'))}`;
+  ${runs.length?runs.map(r=>`<div class="report-card"><div class="device-leading"><div class="report-icon">${icon('file')}</div><div><strong>${esc(r.kind==='infrastructure'?'Infrastructure readiness':'AI model behavior')} <span class="muted2"> / ${esc(r.device_name)}</span></strong><p>${esc(when(r.created_at))} · ${esc(r.id.slice(0,8))} · ${esc(r.result.summary||'Completed')} · evidence ${esc(r.integrity||'unknown')}</p></div></div><div class="report-actions"><span class="scores">${esc(r.score)}%</span><button class="btn btn-small" data-action="show-report" data-id="${esc(r.id)}">Details</button><button class="icon-button" data-action="pdf-report" aria-label="Export PDF" title="Export PDF" data-id="${esc(r.id)}">${icon('download')}</button><button class="icon-button" data-action="delete-report" aria-label="Delete report" title="Delete report" data-id="${esc(r.id)}">${icon('trash')}</button></div></div>`).join(''):empty('file','No matching assessments','Completed tests will be saved here. Run your first infrastructure or model evaluation.',button('New evaluation','to-evaluations','btn-primary'))}`;
 }
+function architecturePage(){return `${head('System blueprint','Architecture & trust boundaries','How SparkCert runs today — implemented components and transparent limitations, not simulated connectivity.')}
+<div class="architect-intro card"><div><p class="eyebrow">LOCAL-FIRST · ZERO CLOUD REQUIREMENT</p><h2>One control plane. Clearly separated systems.</h2><p class="muted-sm">The animated connections illustrate architectural paths, not live activity. Actual SSH and evaluation status appears only after running a test.</p></div><div class="architecture-sigil" aria-hidden="true">SC</div></div>
+<section class="card architect-card"><div class="section-top"><h2 class="section-title">Runtime data flow</h2><span class="tag tag-good">AS IMPLEMENTED · v0.2 DEV</span></div>
+<div class="arch-boundary"><div class="arch-boundary-title">OPERATOR DEVICE · WINDOWS / MACOS / LINUX</div><div class="arch-flow"><div class="arch-node"><span class="arch-node-type">PRESENTATION</span><strong>Desktop / Browser</strong><small>Responsive interface • optional pywebview</small></div><div class="arch-link" aria-hidden="true"><span></span></div><div class="arch-node arch-node-primary"><span class="arch-node-type">LOCAL CONTROL PLANE</span><strong>FastAPI • 127.0.0.1</strong><small>Ephemeral token • policy • validation</small></div><div class="arch-link" aria-hidden="true"><span></span></div><div class="arch-node"><span class="arch-node-type">EVIDENCE STORE</span><strong>SQLite + PDF</strong><small>Real assessment output • locally stored</small></div></div></div>
+<div class="arch-remote-grid"><div class="arch-remote"><div class="arch-rail" aria-hidden="true"></div><div class="arch-node"><span class="arch-node-type">SYSTEM OPENSSH · PORT 22</span><strong>DGX Spark / Linux host</strong><small>Read-only telemetry • SSH aliases • strict known_hosts • SSH agent</small></div><div class="arch-footnote">Reachable network and host authentication required. No remote agent is installed.</div></div><div class="arch-remote"><div class="arch-rail" aria-hidden="true"></div><div class="arch-node"><span class="arch-node-type">OPENAI-COMPATIBLE HTTP(S)</span><strong>Running model endpoint</strong><small>Deterministic live test requests • latency • response checks</small></div><div class="arch-footnote">Model must be running; a managed private SSH tunnel can be started in Connections.</div></div></div>
+<div class="arch-disclaimer">Readiness percentages cover only explicitly executed checks. SparkCert is independent software, not an official NVIDIA or regulatory certification.</div></section>
+<div class="grid-2"><section class="card"><h2 class="section-title">Available now</h2><div class="arch-feature">${icon('check')} OpenSSH manual profiles and VS Code config aliases</div><div class="arch-feature">${icon('check')} Read-only GPU/host diagnostics and seven checks</div><div class="arch-feature">${icon('check')} Four built-in live model tests plus custom cases</div><div class="arch-feature">${icon('check')} Local report history and PDF evidence export</div><div class="arch-feature">${icon('check')} Windows/macOS/Linux source runtime</div></section><section class="card"><h2 class="section-title">Next production gates</h2><div class="arch-feature arch-pending">${icon('chevron')} Signed, real-OS-verified desktop installers</div><div class="arch-feature arch-pending">${icon('chevron')} Physical DGX Spark connection validation</div><div class="arch-feature">${icon('check')} Ephemeral localhost-only SSH tunnels</div><div class="arch-feature arch-pending">${icon('chevron')} Approved file uploads/downloads</div><div class="arch-feature arch-pending">${icon('chevron')} Load/RAG/policy suite calibration and security audit</div><div class="arch-feature">${icon('check')} Basic local retention and audit history</div><div class="arch-feature arch-pending">${icon('chevron')} Accessibility and enterprise privacy hardening</div></section></div>`;}
 function aboutPage(){return `${head('Workspace preferences','Settings & security','Local control, reproducible evidence, clear security boundaries.')}
 <div class="grid-2"><section class="card"><div class="section-top"><h2 class="section-title">Local runtime</h2><span class="tag tag-good">ACTIVE</span></div><div class="check-row"><div class="check-icon pass">${icon('check')}</div><div><strong>Localhost-only application</strong><p>Backend binds 127.0.0.1. Requests require an ephemeral per-launch session token; no remote accounts or tracking.</p></div></div><div class="check-row top-space"><div class="check-icon pass">${icon('check')}</div><div><strong>SSH host identity verification</strong><p>Existing OpenSSH known_hosts, ssh-agent, Host alias, Include and ProxyJump configuration supported.</p></div></div><div class="check-row top-space"><div class="check-icon pass">${icon('check')}</div><div><strong>No credentials persisted</strong><p>SparkCert stores SSH profiles and results, not SSH passwords, private keys, or API keys.</p></div></div><div class="hr"></div><p class="help">Local history is stored in your user profile directory under <code>~/.sparkcert/sparkcert.db</code>. Model test responses may contain sensitive data: treat your local workspace and PDF exports accordingly.</p></section>
 <section class="card"><div class="section-top"><h2 class="section-title">Connection checklist</h2></div><div class="workflow"><div class="work-step"><span class="step-no">01</span><div><strong>Connect securely</strong><p>Set up Ethernet/LAN/VPN routing and confirm SSH access in a trusted terminal.</p></div></div><div class="work-step"><span class="step-no">02</span><div><strong>Verify SSH fingerprint</strong><p>Compare the first-connection host key fingerprint with the target device before accepting it.</p></div></div><div class="work-step"><span class="step-no">03</span><div><strong>Use an SSH agent</strong><p>Load your encrypted key so SparkCert can run non-interactive read-only diagnostics.</p></div></div><div class="work-step"><span class="step-no">04</span><div><strong>Expose model APIs privately</strong><p>Use SSH tunneling rather than making private evaluation services publicly reachable.</p></div></div></div>
 <div class="divider-label">EXAMPLE PORT FORWARD</div><div class="code" id="tunnel-command">ssh -L 8000:127.0.0.1:8000 my-dgx-spark</div><div class="top-space"><button class="btn" data-action="copy-tunnel">Copy SSH tunnel command</button></div></section></div>
+<div class="grid-2 top-space"><section class="card"><div class="section-top"><h2 class="section-title">Evidence retention</h2></div><p class="help">Delete reports older than a chosen number of days. This action cannot be undone. Back up the SQLite file first if the reports are important.</p><form id="retention-form" class="form-grid top-space"><div class="field"><label for="retention-days">Retain recent days</label><input id="retention-days" name="older_than_days" type="number" value="90" min="1" max="3650" required /></div><div class="field"><label>Operation</label><button type="submit" class="btn">Delete older evidence</button></div></form><p class="note">Local result SHA-256 checks detect accidental evidence changes; they are not independently signed attestations.</p></section>
+<section class="card"><div class="section-top"><h2 class="section-title">Local activity history</h2><span class="tag">LATEST 100</span></div><div class="audit-list">${state.audit.length?state.audit.slice(0,8).map(e=>`<div class="audit-event"><span>${esc(e.event.replaceAll('_',' '))}</span><small>${esc(when(e.created_at))}</small></div>`).join(''):'<p class="help">No tracked activity yet.</p>'}</div></section></div>
 <div class="card top-space"><h2 class="section-title">Scope & responsible use</h2><p class="help">SparkCert is independent software, not an NVIDIA product and not an accredited certification body. Pass rates reflect only the checks executed. They do not establish cybersecurity compliance, model fairness, clinical safety, regulatory suitability, or absence of hallucinations. This initial release intentionally uses read-only SSH diagnostics; remote factory reset and destructive operations are not included.</p></div>`;}
 async function getAliases(){try{const result=await api('/ssh/aliases');state.aliases=result.aliases;}catch(error){state.aliases=[];handleError(error);}}
 async function reload(){await loadBase();render();}
@@ -141,6 +165,19 @@ async function action(event) {
   const el=event.target.closest('[data-action]');if(!el||state.working)return;
   const kind=el.dataset.action,id=el.dataset.id;
   try {
+    if(kind==='stop-tunnel'){
+      if(!confirm('Close this SSH tunnel? Model API calls using this address will stop.'))return;
+      await api(`/tunnels/${id}`,{method:'DELETE'});await reload();return toast('SSH tunnel closed');
+    }
+    if(kind==='use-tunnel'){
+      const t=state.tunnels.find(x=>x.id===id);if(!t)return;
+      await navigate('evaluations');const input=$('#eval-endpoint');if(input)input.value=t.endpoint;
+      return toast('Private tunnel endpoint selected. Make sure your model is running remotely.');
+    }
+    if(kind==='delete-report'){
+      if(!confirm('Permanently delete this local assessment? This cannot be undone.'))return;
+      await api(`/reports/${id}`,{method:'DELETE'});await reload();return toast('Assessment removed');
+    }
     if(kind==='to-connections')return navigate('connections');
     if(kind==='to-evaluations')return navigate('evaluations');
     if(kind==='to-reports')return navigate('reports');
@@ -174,6 +211,17 @@ async function action(event) {
       state.fileView=await api(`/devices/${state.selectedId}/files?path=${encodeURIComponent(path)}`);
       render();return;
     }
+    if(kind==='download-file'){
+      if(!state.fileView || !state.selectedId)return;
+      const name=el.dataset.filename;
+      const relative=state.fileView.path==='.'?name:`${state.fileView.path}/${name}`;
+      const response=await api(`/devices/${state.selectedId}/download?path=${encodeURIComponent(relative)}`,{raw:true});
+      const blob=await response.blob();
+      if(blob.size>16*1024*1024)throw new Error('Transfer exceeded download safety limit');
+      const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;
+      document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+      return toast(`Downloaded ${name} securely over SSH`);
+    }
     if(kind==='delete-device'){
       const d=state.devices.find(x=>x.id===id);if(!confirm(`Remove saved SSH profile "${d?.name||'device'}"? Existing assessment reports will remain.`))return;
       await api(`/devices/${id}`,{method:'DELETE'});state.lastProbe=null;if(state.selectedId===id)state.selectedId='';await reload();return toast('Connection profile removed');
@@ -190,17 +238,36 @@ async function action(event) {
   } catch(error){state.working=false;handleError(error);}
 }
 async function submit(event){
-  if(!['device-form','eval-form'].includes(event.target.id))return;
+  if(!['device-form','eval-form','tunnel-form','retention-form','upload-form'].includes(event.target.id))return;
   event.preventDefault();if(state.working)return;
-  const form=event.target;const submitBtn=form.querySelector('button[type="submit"]');const original=submitBtn.innerHTML;submitBtn.disabled=true;submitBtn.innerHTML=`<span class="spinner"></span> ${form.id==='eval-form'?'Running real evaluations…':'Saving profile…'}`;state.working=true;
+  const form=event.target;const submitBtn=form.querySelector('button[type="submit"]');const original=submitBtn.innerHTML;submitBtn.disabled=true;submitBtn.innerHTML=`<span class="spinner"></span> ${form.id==='eval-form'?'Running evaluations…':form.id==='device-form'?'Saving profile…':'Processing…'}`;state.working=true;
   try{
-    if(form.id==='device-form'){
+    if(form.id==='upload-form'){
+      const file=$('#file-upload')?.files?.[0];
+      if(!file || !state.selectedId)throw new Error('Choose a saved device and a file');
+      if(file.size>16*1024*1024)throw new Error('Maximum file size is 16 MiB');
+      if(!confirm(`Upload "${file.name}" to the private ~/sparkcert-uploads directory on this device?`))return;
+      const data=new FormData();data.append('upload',file,file.name);
+      const result=await api(`/devices/${state.selectedId}/upload`,{method:'POST',body:data});
+      toast(`Uploaded ${result.bytes} bytes to ${result.path}`);
+    } else if(form.id==='tunnel-form'){
+      const fields=Object.fromEntries(new FormData(form).entries());
+      fields.remote_port=Number(fields.remote_port);fields.local_port=Number(fields.local_port);
+      const t=await api('/tunnels',{method:'POST',body:JSON.stringify(fields)});
+      await reload();toast(`Secure local port ${t.local_port} is ready. Verify your model endpoint before evaluating.`);
+    } else if(form.id==='retention-form'){
+      const fields=Object.fromEntries(new FormData(form).entries());
+      const days=Number(fields.older_than_days);
+      if(!confirm(`Permanently delete all local assessment reports older than ${days} days?`))return;
+      const r=await api('/reports/retention',{method:'POST',body:JSON.stringify({older_than_days:days})});
+      await reload();toast(`${r.deleted} old assessment reports deleted`);
+    } else if(form.id==='device-form'){
       const data=Object.fromEntries(new FormData(form).entries());data.port=Number(data.port||22);
       const created=await api('/devices',{method:'POST',body:JSON.stringify(data)});
       state.selectedId=created.id;state.lastProbe=null;await reload();toast('Device profile added; select diagnostics to test connectivity');
     } else {
       if(!state.cases.length)throw new Error('Add at least one evaluation case');
-      const data=Object.fromEntries(new FormData(form).entries());data.cases=state.cases;
+      const data=Object.fromEntries(new FormData(form).entries());data.cases=state.cases;data.repetitions=Number(data.repetitions||1);data.concurrency=Number(data.concurrency||1);
       const report=await api('/evaluation/run',{method:'POST',body:JSON.stringify(data)});
       state.lastRun=report;await reload();toast('Model evaluation completed and evidence saved');
     }

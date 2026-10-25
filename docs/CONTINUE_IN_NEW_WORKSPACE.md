@@ -1,3 +1,5 @@
+> **Current project: v0.2.0 development candidate, NOT production validated.** See `docs/PROJECT_STATUS.md`, `docs/VERIFICATION.md`, `docs/WORKSPACE_HANDOFF.md` and `CHANGELOG.md` for new tunnel, file transfer, evaluation and retention features. Older v0.1 text below is retained as history.
+
 # SparkCert — copy this prompt into a new workspace or coding agent
 
 **Attach/extract the complete `SparkCert` source archive first.** Then use:
@@ -6,7 +8,7 @@
 
 ## Baseline context the next agent must preserve
 
-- Current release is **v0.1.0 MVP, not production-grade verified**.
+- Current release is **v0.2.0 development candidate, not production-grade verified**.
 - Current UI is FastAPI-served local HTML/JS/CSS with optional **pywebview**, NOT Tauri/React.
 - OpenSSH runs on the operator computer; app uses its alias/key/known_hosts/agent settings. No custom SSH protocol implementation.
 - Direct Ethernet/VPN are network transport options, **not** automatically configured by the app.

@@ -10,11 +10,15 @@
 
 When continuing, append date, GitHub commit, tests executed, OS/DGX Spark version, evidence paths, unresolved issues and next tasks. Avoid converting planned capabilities into completed claims.
 
+## 2026-10-25 — v0.2.0 feature development
 
-## 2026-10-25 — Repository presentation improvements
-
-- Created an SVG hero banner, four-scene animated product workflow and implemented-architecture diagram in \`assets/\`.
-- Rebuilt README top section with embedded visuals, honest MVP caveats, navigation, concise scope, and links to source-of-truth architecture and handover documents.
-- Wrote \`docs/REPOSITORY_PROFILE.md\` with an accurate About description, repository topics, and metadata-setting instructions.
-- Did **not** change the live GitHub About fields because the available GitHub connector does not expose repository metadata editing.
-- Checked committed README and SVG files on GitHub. Local baseline: **9 pytest tests passed**; JS syntax check passed. No new runtime code was introduced.
+- `sparkcert/tunnels.py`: explicit opt-in private SSH forwards, 4-tunnel cap, strict host verification delegated to OpenSSH, lifecycle cleanup.
+- `sparkcert/transfers.py`: limited remote Python3 home-directory file download; unique 0700 remote upload directory, max 16 MiB, no overwrite, explicit client consent.
+- `sparkcert/evaluation.py`: 1–3 repeat runs and 1–4 request concurrency, measured p50/p95 and model response size cap.
+- `sparkcert/store.py`: SQLite digest migration, local non-prompt audit trail, retention/delete.
+- `sparkcert/app.py`: new authenticated tunnel/file/report/audit endpoints.
+- `sparkcert/reports.py`: evidence digest and measured timing displayed in PDF; checksum mismatch blocks PDF exports.
+- `web/app.js`, `web/styles.css`: animated/responsive private tunnel, file upload/download, retention and audit UI; new evaluation controls.
+- `.github/workflows/ci.yml`: multi-OS Python test and build candidates, security audit/SBOM job; workflow itself not remotely verified.
+- `tests/test_v02.py`, `scripts/ui_smoke.py`: six new automated tests and an offline Chromium UI smoke test (mock-only).
+- No physical hardware connection, production signing, external audit or release publication.

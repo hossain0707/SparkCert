@@ -11,3 +11,51 @@
 .btn:active:not(:disabled){transform:translateY(0)}
 button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid #69e2cb;outline-offset:3px}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* Motion system: restrained interaction polish, no simulated telemetry. */
+:root{--ease-out:cubic-bezier(.2,.8,.2,1)}
+.page{animation:sc-page-enter .35s var(--ease-out) both}
+@keyframes sc-page-enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.page>.card,.page>.stats,.page>.overview-grid,.page>.grid-2,.page>.hero-banner,.page>.architect-intro{animation:sc-content-rise .38s var(--ease-out) both}
+.page>.stats{animation-delay:.035s}.page>.hero-banner,.page>.grid-2{animation-delay:.065s}.page>.overview-grid{animation-delay:.095s}.page>.card{animation-delay:.12s}
+@keyframes sc-content-rise{from{opacity:.6;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+.nav-item,.btn,.icon-button,.card{transition:background-color .2s ease,border-color .2s ease,box-shadow .2s ease,transform .2s var(--ease-out)}
+.btn:not(:disabled):hover{transform:translateY(-1px)}
+.btn:not(:disabled):active{transform:translateY(0)}
+.card:hover{border-color:#335060}
+:where(button,input,select,textarea,a):focus-visible{outline:2px solid #62e7d2;outline-offset:3px}
+.dialog[open]{animation:sc-dialog-in .22s var(--ease-out) both}
+@keyframes sc-dialog-in{from{opacity:0;transform:translateY(8px) scale(.988)}to{opacity:1;transform:translateY(0) scale(1)}}
+/* Architecture page: animated paths communicate design, NOT actual traffic. */
+.architect-intro{display:flex;align-items:center;justify-content:space-between;gap:28px;padding:24px 30px;background:radial-gradient(circle at right,#174e49,#10212d 47%,#111c29)}
+.architect-intro h2{font-size:23px;letter-spacing:-.6px;margin:7px 0}
+.architect-intro p{max-width:620px}
+.architecture-sigil{font-weight:900;font-size:52px;color:#65e8d4;letter-spacing:-6px;text-shadow:0 0 32px #37cbb084;padding:4px 29px}
+.architect-card{margin-top:20px}
+.arch-boundary{padding:22px;border:1px dashed #396375;border-radius:15px;background:#1327354d}
+.arch-boundary-title,.arch-node-type{color:#6cd8cc;font-size:10px;letter-spacing:1.1px;font-weight:850}
+.arch-boundary-title{margin-bottom:17px}
+.arch-flow{display:grid;grid-template-columns:minmax(0,1fr) 50px minmax(0,1.12fr) 50px minmax(0,1fr);align-items:center;gap:2px}
+.arch-node{border-radius:13px;background:linear-gradient(130deg,#162c3b,#12202e);border:1px solid #325468;padding:20px 15px;min-height:142px;display:flex;flex-direction:column;gap:9px;position:relative;z-index:1;transition:.22s var(--ease-out)}
+.arch-node:hover{transform:translateY(-3px);border-color:#43c8ba;box-shadow:0 10px 26px #1eaaa019}
+.arch-node strong{font-size:16px;letter-spacing:-.3px}
+.arch-node small{font-size:11px;color:#a7bfca;line-height:1.6}
+.arch-node-primary{background:linear-gradient(120deg,#14403e,#142d37);border-color:#45ac9d}
+.arch-link{height:2px;background:#2b5f5a;position:relative;overflow:hidden}
+.arch-link span{position:absolute;inset:0;width:36%;height:100%;background:linear-gradient(90deg,transparent,#5ff0d8,transparent);animation:sc-flow 3.2s ease-in-out infinite}
+@keyframes sc-flow{from{transform:translateX(-100%);opacity:0}30%,70%{opacity:1}to{transform:translateX(300%);opacity:0}}
+.arch-remote-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin-top:17px}
+.arch-remote{min-width:0}.arch-rail{height:20px;margin:0 auto;width:2px;background:repeating-linear-gradient(to bottom,#52cab8 0,#52cab8 5px,transparent 5px,transparent 10px);animation:sc-link-fade 3s ease-in-out infinite}
+@keyframes sc-link-fade{50%{opacity:.42}}
+.arch-remote .arch-node{min-height:127px}
+.arch-footnote{font-size:11px;color:#94acb9;margin-top:10px;line-height:1.6}
+.arch-disclaimer{margin-top:20px;padding:13px 15px;background:#29271e;border:1px solid #514a35;border-radius:10px;color:#ebd0a0;font-size:12px}
+.arch-feature{display:flex;align-items:start;gap:11px;padding:11px 0;border-bottom:1px solid #223a49;color:#c7dae1;font-size:12px;line-height:1.6}
+.arch-feature:last-child{border-bottom:0}.arch-feature svg{width:16px!important;height:16px!important;color:#5ce0c7;margin-top:1px}
+.arch-pending svg{color:#ddb981}
+@media(max-width:1170px){.arch-flow{grid-template-columns:minmax(0,1fr) 27px minmax(0,1fr) 27px minmax(0,1fr)}.arch-node{padding:15px 10px}.arch-node strong{font-size:14px}}
+@media(max-width:700px){.architect-intro{padding:20px}.architecture-sigil{display:none}.arch-flow{display:flex;flex-direction:column;align-items:stretch;gap:0}.arch-link{width:2px;height:27px;align-self:center}.arch-remote-grid{grid-template-columns:1fr}.arch-node{min-height:unset}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* v0.2: managed tunnel and local activity panels */
+.audit-event{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #263b48;color:#d2e6ea;font-size:12px;text-transform:capitalize}.audit-event:last-child{border-bottom:0}.audit-event small{font-size:11px;color:#91abb8;white-space:nowrap}.connection-card-actions{flex-wrap:wrap}#tunnel-form{align-items:end}#tunnel-form p{margin:0;line-height:1.6}@media(max-width:620px){.audit-event{flex-direction:column;align-items:start}}

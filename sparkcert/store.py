@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import sqlite3
 from datetime import datetime, timezone
@@ -44,6 +45,13 @@ class Store:
                 status TEXT NOT NULL, score REAL, result_json TEXT NOT NULL,
                 FOREIGN KEY(device_id) REFERENCES devices(id) ON DELETE SET NULL
             )""")
+            columns = {row[1] for row in db.execute("PRAGMA table_info(runs)")}
+            if "result_sha256" not in columns:
+                db.execute("ALTER TABLE runs ADD COLUMN result_sha256 TEXT")
+            db.execute("""CREATE TABLE IF NOT EXISTS audit (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, event TEXT NOT NULL,
+                detail TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL
+            )""")
         if os.name != "nt":
             self.path.chmod(0o600)
 
@@ -64,21 +72,27 @@ class Store:
                 (id,name,host,username,port,ssh_alias,identity_file,created_at,updated_at)
                 VALUES (:id,:name,:host,:username,:port,:ssh_alias,:identity_file,:created_at,:updated_at)
             """, record)
+        self.audit("device_added", record["id"])
         return record
 
     def delete_device(self, id: str) -> bool:
         with self.conn() as db:
             cur = db.execute("DELETE FROM devices WHERE id=?", (id,))
-            return cur.rowcount > 0
+            deleted = cur.rowcount > 0
+        if deleted:
+            self.audit("device_removed", id)
+        return deleted
 
     def add_run(self, kind: str, result: dict, device_id: str | None = None, device_name: str = "") -> dict:
         rec = {"id": str(uuid4()), "kind": kind, "device_id": device_id,
                "device_name": device_name, "created_at": utcnow(),
                "status": result.get("status", "completed"),
                "score": result.get("score"), "result_json": json.dumps(result)}
+        rec["result_sha256"] = hashlib.sha256(rec["result_json"].encode("utf-8")).hexdigest()
         with self.conn() as db:
-            db.execute("""INSERT INTO runs (id,kind,device_id,device_name,created_at,status,score,result_json)
-                VALUES (:id,:kind,:device_id,:device_name,:created_at,:status,:score,:result_json)""", rec)
+            db.execute("""INSERT INTO runs (id,kind,device_id,device_name,created_at,status,score,result_json,result_sha256)
+                VALUES (:id,:kind,:device_id,:device_name,:created_at,:status,:score,:result_json,:result_sha256)""", rec)
+        self.audit("assessment_saved", rec["id"])
         return self.run(rec["id"])
 
     def runs(self, limit: int = 100) -> list[dict]:
@@ -91,8 +105,43 @@ class Store:
             row = db.execute("SELECT * FROM runs WHERE id=?", (id,)).fetchone()
         return self._run_dict(row) if row else None
 
+    def delete_run(self, id: str) -> bool:
+        with self.conn() as db:
+            cur = db.execute("DELETE FROM runs WHERE id=?", (id,))
+            deleted = cur.rowcount > 0
+        if deleted:
+            self.audit("assessment_deleted", id)
+        return deleted
+
+    def purge_runs(self, older_than_days: int) -> int:
+        """Explicit retention operation; no background auto-deletion."""
+        from datetime import timedelta
+        if not isinstance(older_than_days, int) or not 1 <= older_than_days <= 3650:
+            raise ValueError("Retention must be between 1 and 3650 days")
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=older_than_days)).isoformat(timespec="seconds")
+        with self.conn() as db:
+            cur = db.execute("DELETE FROM runs WHERE created_at < ?", (cutoff,))
+            count = cur.rowcount
+        self.audit("assessment_retention_purge", f"{count} records over {older_than_days} days")
+        return count
+
+    def audit(self, event: str, detail: str = "") -> None:
+        if not event.isidentifier():
+            raise ValueError("Invalid audit event")
+        with self.conn() as db:
+            db.execute("INSERT INTO audit (event,detail,created_at) VALUES (?,?,?)",
+                       (event, str(detail)[:180], utcnow()))
+
+    def audit_events(self, limit: int = 100) -> list[dict]:
+        with self.conn() as db:
+            rows = db.execute("SELECT * FROM audit ORDER BY id DESC LIMIT ?", (min(500,max(1,limit)),)).fetchall()
+        return [dict(row) for row in rows]
+
     @staticmethod
     def _run_dict(row):
         item = dict(row)
-        item["result"] = json.loads(item.pop("result_json"))
+        data = item.pop("result_json")
+        digest = item.get("result_sha256")
+        item["integrity"] = "verified" if digest and hashlib.sha256(data.encode("utf-8")).hexdigest() == digest else "legacy_unverified" if not digest else "mismatch"
+        item["result"] = json.loads(data)
         return item

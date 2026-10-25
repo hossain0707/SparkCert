@@ -1,4 +1,41 @@
-# SparkCert — implemented architecture and evolution plan
+# SparkCert — architecture as implemented (v0.2.0 development candidate)
+
+**Independent, localhost-only control plane; not an official NVIDIA product or an accredited certification body.** Motion in README is illustrative only. For the initial v0.1 topology and rationale, see the historical section below.
+
+```mermaid
+flowchart LR
+    UI[Desktop/Browser UI] -->|localhost HTTP + session token| API[FastAPI controller]
+    API --> DB[(SQLite reports, digests & audit events)]
+    API --> PDF[PDF evidence exporter]
+    API --> SSH[System OpenSSH]
+    SSH -->|Read-only diagnostics| DEVICE[DGX Spark / Linux host]
+    SSH -->|Opt-in bounded uploads/downloads| DEVICE
+    API --> TUN[Ephemeral SSH tunnel registry]
+    TUN -->|127.0.0.1 forwarded over OpenSSH| MODEL[Already-running model API]
+    API --> EVAL[Bounded LLM evaluation engine]
+    EVAL -->|HTTP on configured endpoint / local tunnel| MODEL
+```
+
+Trust boundaries: local computer controls SQLite and reports; OpenSSH owns host-key verification, keys and ssh-agent; target Linux account executes a fixed diagnostic/transfer helper; model endpoint receives user-supplied prompts. The local dashboard is **not** a multi-user server. Uploading files is an explicit remote write to a unique file in `~/sparkcert-uploads`, while infrastructure queries remain read-only.
+
+## New v0.2 APIs
+
+| Verb | Path | Purpose |
+| --- | --- | --- |
+| GET/POST | `/api/tunnels` | List or start temporary localhost-only OpenSSH forwards |
+| DELETE | `/api/tunnels/{id}` | Stop a managed port forward |
+| GET | `/api/devices/{id}/download?path=` | Home-scoped and size-limited read of a remote file |
+| POST | `/api/devices/{id}/upload` | Opt-in upload of max 16 MiB under `~/sparkcert-uploads` |
+| GET | `/api/audit` | Return recent non-content local audit events |
+| DELETE | `/api/reports/{id}` | Remove an assessment from SQLite |
+| POST | `/api/reports/retention` | Delete reports older than specified days |
+| POST | `/api/evaluation/run` | Also accepts `repetitions:1..3` and `concurrency:1..4` |
+
+All APIs except `/api/health` require the launch session token. Errors and selected prompts/results may contain private information; stored results are **not encrypted**. SHA-256 results are corruption detection only, not digitally signed external evidence.
+
+## Historical v0.1 architecture
+
+
 
 **Architecture is documented AS BUILT**, not as an idealized future system. Animated companion: [ARCHITECTURE.html](ARCHITECTURE.html).
 
@@ -22,7 +59,7 @@ flowchart TB
     TERM -->|SSH| DGX
 ```
 
-**Important:** the client does not deploy a SparkCert agent onto the DGX host in v0.1.0. A user's model API must already be available. When private, create an OS-level SSH forward separately. The optional pywebview window serves the same local web app; it is not a Tauri/Electron application.
+**Important:** the client does not deploy a SparkCert agent onto the DGX host in v0.1.0. A user's model API must already be available. When private, an OS-level SSH forward may be created manually or by the v0.2 managed tunnel feature. The optional pywebview window serves the same local web app; it is not a Tauri/Electron application.
 
 ## Control plane and data plane
 

@@ -1,8 +1,10 @@
+> **Current project: v0.2.0 development candidate, NOT production validated.** See `docs/PROJECT_STATUS.md`, `docs/VERIFICATION.md`, `docs/WORKSPACE_HANDOFF.md` and `CHANGELOG.md` for new tunnel, file transfer, evaluation and retention features. Older v0.1 text below is retained as history.
+
 # SparkCert agent instructions
 
 **Project:** SparkCert — local-first AI readiness workbench for NVIDIA DGX Spark and other SSH-managed Linux AI hosts.  
 **Owner:** Md Najmul Hossain  
-**Status:** Development MVP v0.1.0; not an independently validated production release.
+**Status:** Development candidate v0.2.0 (not independently production validated); not an independently validated production release.
 
 ## Mandatory first steps (in every new workspace)
 

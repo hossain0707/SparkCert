@@ -1,3 +1,5 @@
+> **Current project: v0.2.0 development candidate, NOT production validated.** See `docs/PROJECT_STATUS.md`, `docs/VERIFICATION.md`, `docs/WORKSPACE_HANDOFF.md` and `CHANGELOG.md` for new tunnel, file transfer, evaluation and retention features. Older v0.1 text below is retained as history.
+
 # Continue SparkCert development
 
 **Project:** [hossain0707/SparkCert](https://github.com/hossain0707/SparkCert) · **Owner:** Md Najmul Hossain · **Current state:** v0.1.0 development MVP.

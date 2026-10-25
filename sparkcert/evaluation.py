@@ -5,6 +5,8 @@ We never claim these limited probes establish model safety, clinical utility, or
 from __future__ import annotations
 
 import json
+import statistics
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import re
 import time
 from datetime import datetime, timezone
@@ -62,54 +64,118 @@ def judge(output: str, rule: str, expected: str) -> tuple[bool, str]:
     raise EvaluationError("Unsupported evaluation rule")
 
 
-def evaluate(endpoint: str, model: str, cases: list[dict], api_key: str = "", timeout: float = 30) -> dict:
+def _percentile(values: list[int], fraction: float) -> int | None:
+    if not values:
+        return None
+    sorted_values = sorted(values)
+    return sorted_values[min(len(sorted_values) - 1, int((len(sorted_values) - 1) * fraction + 0.9999))]
+
+
+def evaluate(endpoint: str, model: str, cases: list[dict], api_key: str = "", timeout: float = 30,
+             repetitions: int = 1, concurrency: int = 1) -> dict:
+    """Run bounded model probes. Optional repeats/concurrency measure observed local client latency.
+
+    These tests do not constitute throughput certification, full load tests, or a security audit.
+    """
     url = validate_endpoint(endpoint)
     model = model.strip()
     if not model or len(model) > 180:
         raise EvaluationError("Enter a valid model identifier")
     if not 1 <= len(cases) <= 25:
         raise EvaluationError("Provide between 1 and 25 evaluation cases")
+    if not isinstance(repetitions, int) or not 1 <= repetitions <= 3:
+        raise EvaluationError("Repetitions must be between 1 and 3")
+    if not isinstance(concurrency, int) or not 1 <= concurrency <= 4:
+        raise EvaluationError("Concurrency must be between 1 and 4")
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
-    results = []
+    validated = []
+    for case in cases:
+        cleaned = {
+            "name": str(case.get("name", "Test"))[:120],
+            "category": str(case.get("category", "Custom"))[:100],
+            "rule": str(case.get("rule", "exact")),
+            "expected": str(case.get("expected", ""))[:2000],
+            "system": str(case.get("system", ""))[:4000],
+            "prompt": str(case.get("prompt", ""))[:5000],
+        }
+        if cleaned["rule"] not in {"exact", "contains", "not_contains", "json_key_value"} or not cleaned["prompt"]:
+            raise EvaluationError(f"Invalid evaluation case: {cleaned['name']}")
+        validated.append(cleaned)
+
     started = time.perf_counter()
+    samples: dict[int, list[dict]] = {i: [] for i in range(len(validated))}
     with httpx.Client(timeout=httpx.Timeout(timeout, connect=6), follow_redirects=False,
                       trust_env=False, headers=headers) as client:
-        for case in cases:
-            name = str(case.get("name", "Test"))[:120]
-            rule = str(case.get("rule", "exact"))
-            expected = str(case.get("expected", ""))[:2000]
-            system = str(case.get("system", ""))[:4000]
-            prompt = str(case.get("prompt", ""))[:5000]
-            if rule not in {"exact", "contains", "not_contains", "json_key_value"} or not prompt:
-                raise EvaluationError(f"Invalid evaluation case: {name}")
+        def call(i: int, case: dict) -> tuple[int, dict]:
             payload = {"model": model, "temperature": 0, "max_tokens": 256,
-                       "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}]}
+                       "messages": [{"role": "system", "content": case["system"]},
+                                    {"role": "user", "content": case["prompt"]}]}
             t0 = time.perf_counter()
             try:
-                response = client.post(url + "/chat/completions", json=payload)
-                response.raise_for_status()
-                data = response.json()
+                with client.stream("POST", url + "/chat/completions", json=payload) as response:
+                    response.raise_for_status()
+                    chunks = bytearray()
+                    for chunk in response.iter_bytes():
+                        chunks.extend(chunk)
+                        if len(chunks) > 1024 * 1024:
+                            raise EvaluationError("Response exceeded 1 MiB limit")
+                data = json.loads(chunks)
                 content = data["choices"][0]["message"].get("content", "")
                 if not isinstance(content, str):
                     content = json.dumps(content, ensure_ascii=False)
-                passed, detail = judge(content, rule, expected)
+                passed, detail = judge(content, case["rule"], case["expected"])
                 usage = data.get("usage", {})
                 tokens = usage.get("total_tokens") if isinstance(usage, dict) else None
+                if not isinstance(tokens, (int, float)):
+                    tokens = None
                 error = None
-            except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError) as exc:
+            except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError, EvaluationError) as exc:
                 content, passed, detail, tokens = "", False, "Endpoint request failed", None
                 error = str(exc)[:300]
-            results.append({"name": name, "category": str(case.get("category", "Custom"))[:100],
-                            "passed": passed, "detail": detail, "rule": rule, "expected": expected,
-                            "output": content[:1500], "latency_ms": round((time.perf_counter() - t0) * 1000),
-                            "tokens": tokens, "error": error})
+            return i, {"passed": passed, "detail": detail, "output": content[:1500],
+                       "latency_ms": round((time.perf_counter() - t0) * 1000),
+                       "tokens": tokens, "error": error}
+
+        if concurrency == 1:
+            for i, case in enumerate(validated):
+                for _ in range(repetitions):
+                    _, outcome = call(i, case)
+                    samples[i].append(outcome)
+        else:
+            with ThreadPoolExecutor(max_workers=concurrency) as pool:
+                futures = [pool.submit(call, i, case) for i, case in enumerate(validated)
+                           for _ in range(repetitions)]
+                for future in as_completed(futures):
+                    i, outcome = future.result()
+                    samples[i].append(outcome)
+
+    results = []
+    for i, case in enumerate(validated):
+        measured = samples[i]
+        successes = sum(x["passed"] for x in measured)
+        first = next((x for x in measured if not x["passed"]), measured[0])
+        times = [x["latency_ms"] for x in measured]
+        results.append({"name": case["name"], "category": case["category"],
+                        "passed": successes == len(measured),
+                        "pass_count": successes, "sample_count": len(measured),
+                        "detail": f"{successes}/{len(measured)} requests met this check: {first['detail']}",
+                        "rule": case["rule"], "expected": case["expected"],
+                        "output": first["output"], "latency_ms": _percentile(times, .5),
+                        "latency_p95_ms": _percentile(times, .95),
+                        "tokens": first["tokens"], "error": first["error"]})
     passed_count = sum(t["passed"] for t in results)
+    all_latencies = [sample["latency_ms"] for group in samples.values() for sample in group]
+    completed_requests = sum(1 for group in samples.values() for sample in group if sample["error"] is None)
     return {"status": "completed", "score": round(100 * passed_count / len(results)),
-            "summary": f"{passed_count}/{len(results)} model behavior checks passed",
-            "scope": "Limited deterministic probes, not comprehensive model safety, clinical validation, or official certification.",
-            "method": "Live OpenAI-compatible chat/completions requests, temperature=0; actual result comparison",
+            "summary": f"{passed_count}/{len(results)} model behavior checks passed across {len(all_latencies)} requests",
+            "scope": "Bounded deterministic probes and observed local-client latency; not complete model safety, performance certification or clinical validation.",
+            "method": "Live OpenAI-compatible chat/completions requests, temperature=0; explicit acceptance rules",
             "endpoint": url, "model": model, "cases": results,
+            "repetitions": repetitions, "concurrency": concurrency,
+            "requests_total": len(all_latencies), "requests_without_transport_errors": completed_requests,
+            "latency_p50_ms": _percentile(all_latencies, .5),
+            "latency_p95_ms": _percentile(all_latencies, .95),
             "duration_ms": round((time.perf_counter() - started) * 1000),
             "executed_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}

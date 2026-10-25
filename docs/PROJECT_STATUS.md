@@ -1,79 +1,46 @@
-# SparkCert — status, gaps and actionable backlog
+# SparkCert — implementation and release status
 
-**Snapshot:** 2026-10-25 · **Source version:** v0.1.0 · **Release label:** local-first MVP, **not** production-certified.
+**Source version:** v0.2.0 development candidate · **Updated:** 2026-10-25 · **Status:** functional local-first development software; **not a production-verified or certified release**.
 
-## Definitions
+## What is implemented and locally tested
 
-- **Implemented:** source code exists; relevant automated tests or manual local smoke tests demonstrate behavior in the development environment.
-- **Partially implemented:** subset exists, but original UX or coverage is unfinished.
-- **Unverified:** no conclusive cross-platform/DGX Spark test; do not advertise as supported for customers.
-- **Planned:** no production implementation in project tree.
+| Subsystem | Current implementation | Verification scope / limitations |
+| --- | --- | --- |
+| Web and optional desktop interface | Responsive dark UI, navigation, restrained CSS motion, reduced-motion media query | Chromium offline mock-data walkthrough on 1440px desktop and 390px mobile; PyWebView native installer not verified |
+| Local controller | FastAPI on 127.0.0.1 with per-process session token, origin checks, CSP | 15 automated tests locally; no independent pentest |
+| SSH connection profiles | Manual host/port/user/key-path settings; OpenSSH config aliases including standard ProxyJump/key config | Mock integration tests and static review; physical Windows/Mac/Spark not tested |
+| Ethernet, LAN and remote VPN | Any existing IP-reachable route via OS OpenSSH | Neither network provisioning nor Tailscale account configuration automated |
+| SSH terminal / diagnostics | Native OS terminal, OpenSSH strict host keys, bounded read-only GPU/OS/system probes | Mock Linux diagnostics; remote DGX Spark measurements not obtained |
+| Remote file browsing | Home-relative SSH listing, limited entries | No hostile-filesystem concurrent-modification guarantees |
+| Opt-in uploads/downloads | Bounded 16 MiB, remote Python3 helper, home-scoped download, uniquely named 0700 ~/sparkcert-uploads destination | Unit/mocked API tests only; no real SFTP/hardware validation; uploads are remote filesystem writes, require operator confirmation |
+| Managed private tunnels | Up to four process-local OpenSSH -N port forwards bound to 127.0.0.1; explicit stop; cleanup on exit and device deletion | Mocked lifecycle tests; forward listening does not guarantee remote API responsiveness |
+| Infrastructure readiness | Seven explicit prerequisite checks with real-result report recording | Thresholds are **project heuristics**, not official NVIDIA standards |
+| LLM evaluation | OpenAI-compatible chat API, 4 defined probes + custom cases, repetition 1–3, concurrency 1–4, p50/p95 latency | MockTransport tests; useful for comparison, **not an audited performance/robustness benchmark** |
+| Persistence and reporting | SQLite, PDF evidence, result JSON SHA-256 check, delete/retention, local non-content audit events | Tests pass; digest not an independent digital signature; no encryption/RBAC |
+| Build automation | Cross-OS Python test matrix, unsigned PyInstaller build candidates, SBOM and pip-audit workflow definitions | Workflow has not been verified successful on GitHub runners; artifacts are unsigned |
+| Documentation and GitHub presentation | README visuals/animation, architecture diagram, handover, tests, developer instructions | Screenshots are explicitly mock-data previews; existing GitHub metadata may require owner sidebar edit |
 
-| Domain | Status | Delivered | Next acceptance criteria |
-| --- | --- | --- | --- |
-| Professional UI | Implemented, needs QA | Responsive navigation, cards, forms, detailed report view, animations | Full keyboard/contrast/screen-reader tests, responsive snapshots, error flows |
-| Local backend | Implemented | FastAPI, loopback binding, ephemeral token, origins/CSP | Threat-model local browser/CSRF and endpoint abuse; add security regression tests |
-| Windows/macOS/Linux | Unverified distribution | Python source/optional pywebview, PyInstaller CI recipe | Produce, sign where appropriate, and smoke-test native builds on each OS |
-| Direct Ethernet | Partially implemented | Uses existing OS routing to SSH host | Show link/IP status and safe guidance; test real point-to-point setups |
-| LAN & private VPN | Partially implemented | Supports any pre-existing routable network | Real LAN and Tailscale tests, negative failure diagnostics |
-| VS Code Remote SSH config | Implemented basic import | Lists SSH Host aliases and sends to OpenSSH | Nested Include/Host edge cases and first-run UX tests |
-| SSH key/agent + strict host keys | Implemented | System SSH, batch auth for probes, system terminal for interactive auth | Windows/macOS agents, keychain, enterprise policy/jump-host tests |
-| SSH remote terminal | Partial | Native system terminal launched | Optional securely scoped embedded terminal, proper permission model |
-| SFTP file manager | Partial | Read-only listing in home directory | Controlled upload/download, checksums, directory boundaries, transfer UX |
-| GPU/system diagnostics | Implemented snapshots | hostname, OS, arch, RAM, disk, nvidia-smi, Docker, Python | DGX Spark real data, units, missing fields, unified memory fidelity |
-| Infrastructure checks | Implemented heuristics | Seven checks with evidence | Configurable policies, calibration, per-target requirements |
-| Model evaluations | Implemented limited | OpenAI-compatible chat, deterministic rules | Proven accuracy suites, concurrency/load, RAG evaluation and baselines |
-| Model deployment, tunnel management | Planned | README manual tunnel instructions | Controlled endpoint discovery, one-click private tunnel, model preflight |
-| Report persistence/PDF | Implemented | SQLite history, reportlab PDF, time/run ID | Export/import, retention, evidence integrity and cryptographic signatures |
-| Recovery / factory reset | Planned | No destructive action included | Separate safe design and hardware-lab evidence before implementation |
-| Remote DGX agent | Planned | No installable server agent | Consent, least privilege, auth, lifecycle and offline support |
-| Enterprise governance | Planned | No RBAC, audit policy, encryption | Risk assessment, multi-user security, retention/access policy |
-| Commercial production release | Not ready | No SLA, no signed release or external review | Hardware test matrix, supply-chain review, hardening, licensing |
+## Open production release gates (must not be called complete)
 
-## Product-risk and security backlog
+1. **Real hardware:** run Windows 11 x64, macOS Intel/Apple silicon, Ubuntu 24.04 against physical DGX Spark over direct Ethernet, LAN and a private remote VPN. Cover successful SSH auth, changed host key, missing key/agent, ProxyJump, closed model port, file transfer interruptions and permission denial.
+2. **Native installers:** CI must actually complete on all target OS runners; smoke-test the executable on clean hardware, add artifact checksums, Windows code-signing and macOS Developer ID signing/notarization. These require appropriate certificates/accounts and explicit owner validation.
+3. **Independent security:** threat model, dependency and supply-chain audit, code review/penetration test of the localhost API, SSH helper and file-transfer access; set trusted-operator boundary; mature secret protection and provenance.
+4. **Enterprise-grade policy/evaluation:** per-organization policies and reference datasets; calibrated acceptance criteria, prompt-injection/RAG evaluations, realistic concurrency/load datasets, regression baselines, multi-user/RBAC support if needed.
+5. **Privacy and governance:** model output currently persists unencrypted in the local SQLite database. Add stronger retention/consent controls, optional output redaction, encryption/key management strategy and signed immutable evidence if required by customers.
+6. **Operational quality:** streaming/cancelable background jobs, verified error/timeout/reconnect UX, screen-reader/accessibility audit, full end-to-end browser/API test on supported hosts, professional support/update/licensing and release channels.
+7. **Optional improvements:** safe device discovery with user consent, fleet scheduling, delegated agent installation after full privilege/security review, disaster recovery integrations with NVIDIA-supported tooling. No remote reset of unbootable hardware via SSH is promised.
+8. **Legal/branding:** owner chooses OSI or proprietary license; keep the independent / unofficial / non-accredited disclaimer. Github About description/topics may still need a manual edit.
 
-**P0 — must complete before public production claims**
+## Scope rules
 
-1. Cross-platform app builds verified on clean machines, with installers, code signing and macOS notarization strategy.
-2. DGX Spark hardware-in-loop matrix (Ethernet, LAN, VPN, disconnected host, changed host key, password-only hosts, ProxyJump, permissions).
-3. Secure remote command/file operations review, dependency audit, SBOM and pentest, local service security review.
-4. Evaluation methodology: separate measured check pass rates from general readiness; benchmark measured latencies, error counts, limits and reference data.
-5. Accessibility and keyboard/screen-reader tests plus reproducible UI screenshots.
-6. Legal/commercial: decide OSI license vs proprietary terms; avoid official certification or NVIDIA endorsement claims.
+- An SSH tunnel **only** proves that the local forwarding listener is available; it does **not** prove the model API works.
+- A readiness percent means only *the named tests executed* passed. Do not call it comprehensive model safety, medical suitability, regulatory compliance or official certification.
+- SHA-256 digest verification is local corruption evidence, not tamper-proof chain of custody. Back up your database before deleting reports.
+- The client is local-only; there is no cloud controller, no account login, no telemetry and no credential storage.
+- Password SSH is interactive in the OS terminal; automated probes need working keys/ssh-agent.
 
-**P1 — high-value user experience**
+## Baseline validation
 
-1. SSH connect wizard: test connectivity, guided verification of fingerprints and IPv4 direct-Ethernet setup.
-2. Authenticated tunnel manager; model-endpoint discovery after SSH connect; show which traffic crosses which boundary.
-3. Background jobs/progress with cancellation, streamed status and bounded resource usage.
-4. Secure file transfer with checksum validation, sane path constraints, explicit action confirmations.
-5. Evaluation suites: curated user datasets, batch results, versioned baselines, regression comparison, concurrency.
-6. Secure audit trail and local data retention/export/redaction; avoid storing sensitive prompts by default where feasible.
+Environment: Linux container · Python 3.13 · `pytest -q`: **15 passed** · `node --check web/app.js`: **pass** · `python -m compileall -q sparkcert`: **pass** · offline Chromium screenshots: desktop/mobile **pass** using mocked API data. **No real DGX Spark, macOS or Windows acceptance tests have been performed here.**
 
-**P2 — scale and value differentiation**
-
-1. Agentless fleet readiness comparisons and change-over-time checks.
-2. Optional hardened host agent for detailed GPU telemetry and server-side benchmarking.
-3. Policy packs by workload and tenant; no unsupported regulatory certification language.
-4. Signed evidence bundles, configurable organization branding, release gates, CI integration.
-5. Recovery planning/backup inventory and test-only recovery workflows (real recovery requires hardware verification).
-
-## Known limitations / precise wording for release notes
-
-- 'Remote from anywhere' requires **existing** VPN or private network path and OS SSH, not an internet relay within SparkCert.
-- 'Password SSH' works interactively **in native terminal**, not in background diagnostics; prefer ssh-agent.
-- 'One-click' currently means save profile/evaluate, **not** device provisioning or launching a model.
-- 'Production readiness score' is the pass fraction of the explicit checks performed; cannot certify an entire service or organization.
-- A device can run models independently; SparkCert does not install vLLM/Ollama for v0.1.0.
-- Local app database stores potentially sensitive output unencrypted; shipping to regulated customers is premature.
-- Tests may use mocks and never substitute for Windows/macOS/DGX Spark hardware verification.
-
-## Milestone closeout format for future agents
-
-For each change, append a dated entry below describing: feature, files touched, threat/compatibility impact, exact tests and environment, test failures, screenshots, unverified systems, follow-on issue. Do **not** change statuses on assumption alone.
-
-### 2026-10-25 — Initial source and documentation snapshot
-
-- MVP modules present and baseline automated suite passes in this container. Features and limits were reviewed against source.
-- Standalone animated architecture reference and UI motion improvements added; see `ARCHITECTURE.html`, `DESIGN_SYSTEM.md`.
-- Open: physical DGX Spark validation, packaged OS builds, deeper evaluation quality, security and release gates.
+For new workspaces start with `docs/HANDOVER_START_HERE.md` and `docs/WORKSPACE_HANDOFF.md`.

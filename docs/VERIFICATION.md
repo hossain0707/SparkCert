@@ -44,3 +44,23 @@ Do not promote any row to pass until exercised on that real platform. Important 
 - Evidence quality: official external 'certified' language **never used** without accredited framework; tests/calibration and limitations specified in every report.
 - Privacy: data retention, delete/export, keychain/policy, encryption threat model for saved outputs.
 - Operations: versioned release notes, source/artifact provenance, update signing, license and support policy.
+
+## 2026-10-25 UI verification performed in this container
+
+- **Pass:** Chromium headless rendered the app with offline stubbed API responses via injected JavaScript (no actual SSH or HTTP requests); overview to Architecture and Connections navigation worked without JavaScript exceptions.
+- **Pass:** 390px mobile viewport opened the navigation, displayed the Architecture page, and honored `prefers-reduced-motion: reduce`.
+- **Pass:** standalone `docs/ARCHITECTURE.html` rendered in headless Chromium and its **Pause diagram motion** control toggled state.
+- Screenshots: `docs/assets/overview-preview.png` (initial MVP visual); `docs/assets/architecture-preview.png`, `docs/assets/architecture-mobile-preview.png`, `docs/assets/standalone-blueprint-preview.png` (dated architecture visuals).
+- **Environment limitation:** Chromium browser navigation to localhost and `file:` URLs was blocked by container administrative policy (`net::ERR_BLOCKED_BY_ADMINISTRATOR`). The UI smoke test therefore used an offline HTML/CSS/JS rendering harness with mocked API responses. FastAPI/PDF/SSH logic has separate Python test coverage; **end-to-end browser-to-server-on-network testing remains unverified**.
+- Repeatable commands: `python -m pytest -q` → **9 passed**; `node --check web/app.js` → **pass**. No DGX Spark hardware access was performed.
+
+## 2026-10-25 — v0.2.0 development upgrade; actual execution evidence
+
+- `python -m pytest -q`: **15 passed**, on this Linux Python 3.13 environment.
+- `node --check web/app.js`: **pass**.
+- `python -m compileall -q sparkcert`: **pass**.
+- `python scripts/ui_smoke.py`: **pass**, offline Chromium at 1440 × 900 and 390 × 844; navigated Connections → AI Evaluations → Settings; asserted tunnel/evaluation/retention forms, no JS exceptions or horizontal viewport overflow. Explicitly **mock data** and injected API stubs. Screenshots: `docs/assets/v02-desktop-settings-preview.png`, `docs/assets/v02-mobile-settings-preview.png`.
+- Automated tests cover tunnel construction/shutdown through mocked Popen/socket, permissions, bounded file upload/download through mocked remote helper, repeat/concurrent evaluation MockTransport, SHA-256 tampering blocking PDF, report deletion and age-based purge.
+- **Not executed:** real SSH transport (OpenSSH client is not installed in this container), physical DGX Spark connection, Ethernet/VPN end-to-end, Windows/macOS PyInstaller build, CI cloud runners, vulnerability audit tool, SBOM command, signed distribution or external penetration test.
+
+No '100% production-ready' or external certification claim can be made on this evidence.

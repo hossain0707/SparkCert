@@ -1,4 +1,4 @@
-name: SparkCert CI and Desktop Packages
+name: SparkCert CI and OS Build Candidates
 
 on:
   push:
@@ -11,19 +11,54 @@ permissions:
 
 jobs:
   test:
+    name: Python tests / JS parse (${{ matrix.os }}, ${{ matrix.python }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ['3.11', '3.12', '3.13']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install development dependencies
+        run: python -m pip install -e '.[dev]'
+      - name: Python tests
+        run: python -m pytest -q
+      - name: Browser application JavaScript syntax
+        run: node --check web/app.js
+      - name: Python source syntax
+        run: python -m compileall -q sparkcert
+
+  source-security:
+    name: Dependency and source inventory
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: pip
-      - run: python -m pip install -e '.[dev]'
-      - run: python -m pytest -q
-      - run: node --check web/app.js
+      - name: Install runtime and dependency-audit utilities
+        run: python -m pip install -e . pip-audit cyclonedx-bom
+      - name: Dependency vulnerability audit
+        run: python -m pip_audit
+      - name: Create CycloneDX SBOM
+        run: cyclonedx-py environment -o sbom.json --output-format JSON
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SparkCert-SBOM
+          path: sbom.json
+          retention-days: 30
 
   desktop:
     needs: test
+    name: Unsigned desktop build candidate (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
@@ -35,14 +70,14 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-      - name: Linux webview dependencies
+      - name: Linux webview prerequisites
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-0 libwebkit2gtk-4.1-0 gir1.2-webkit2-4.1 xvfb
-      - name: Install dependencies
+      - name: Install optional desktop toolchain
         run: python -m pip install -e '.[desktop]'
-      - name: Build native desktop
+      - name: Build application
         shell: bash
         run: |
           python -m PyInstaller --noconfirm --clean --windowed --onedir \
@@ -52,16 +87,17 @@ jobs:
             --collect-all webview \
             --hidden-import sparkcert.app \
             desktop_launcher.py
-      - name: macOS DMG
+      - name: Produce macOS DMG (unsigned)
         if: runner.os == 'macOS'
         shell: bash
         run: hdiutil create -volname SparkCert -srcfolder dist/SparkCert.app -ov -format UDZO dist/SparkCert-macOS.dmg
-      - name: Upload desktop artifact
+      - name: Upload unsigned build candidates
         uses: actions/upload-artifact@v4
         with:
-          name: SparkCert-${{ runner.os }}
+          name: SparkCert-build-${{ runner.os }}
           path: |
             dist/SparkCert/
             dist/SparkCert.app/
             dist/SparkCert-macOS.dmg
+          retention-days: 14
           if-no-files-found: error

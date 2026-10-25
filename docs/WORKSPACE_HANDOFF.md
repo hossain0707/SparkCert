@@ -1,3 +1,5 @@
+> **CURRENT SOURCE OF TRUTH — 2026-10-25 / v0.2.0 development candidate:** This handover contains the initial v0.1.0 snapshot as historical context. **Before relying on any v0.1 status table below, read [PROJECT_STATUS.md](PROJECT_STATUS.md), [ARCHITECTURE.md](ARCHITECTURE.md), [VERIFICATION.md](VERIFICATION.md) and the v0.2 changelog**. Implemented upgrades: private SSH tunnel manager, bounded SSH transfers, concurrency/repeat evaluation, measured latency, basic audit/retention/evidence hash, updated UI and tests. **15 Python automated tests and desktop/mobile offline mocked-API UI smoke tests passed** on Linux. **Production grade is unverified:** no physical DGX Spark/Windows/macOS acceptance, signed installers or external security review.
+
 # SparkCert — canonical workspace handoff
 
 > **READ THIS FIRST in any new chat, coding agent, or computer.**
@@ -77,7 +79,10 @@ SparkCert/
     ├── PRODUCT_ROADMAP.md        # next releases and gates
     ├── VERIFICATION.md           # tests/release verification and hardware matrix
     ├── CONTINUE_IN_NEW_WORKSPACE.md # copy/paste follow-on task prompt
-    └── ARCHITECTURE.html         # portable animated, standalone interactive architecture
+    ├── ARCHITECTURE.html         # portable animated, standalone interactive architecture
+    ├── PRODUCT_REQUIREMENTS.md   # original full product vision and personas
+    ├── DECISIONS.md              # dated architecture decision records
+    └── assets/                   # static visual regression/reference screenshots
 ```
 
 ## 4. Start and test
@@ -137,16 +142,38 @@ See `PROJECT_STATUS.md` for exact feature-by-feature acceptance criteria and pri
 SparkCert is a cross-platform control plane for verifiable local AI readiness: **host prerequisite checks + narrow model-behavior tests + stored evidence + reproducible reports**. It is not a replacement for NVIDIA Sync or a claimed NVIDIA-endorsed certification service. First support Spark; build a generic SSH/OpenAI-compatible backend so the addressable market includes non-Spark inference hosts. Freemium/commercial pricing remains a hypothesis, not a verified business model.
 
 
-## README showcase and GitHub profile update — 2026-10-25
+## 2026-10-25 · v0.2.0 developer handoff (append-only update)
 
-The repository README now embeds **three version-controlled SVG assets**:
+### New source modules
 
-1. \`assets/sparkcert-hero.svg\` — branded overview hero with truthful v0.1.0 MVP labeling.
-2. \`assets/sparkcert-workflow-animated.svg\` — CSS-animated four-stage **illustrative** tour (Connect → Inspect → Evaluate → Report); includes reduced-motion support, not real hardware or screen-recording evidence.
-3. \`assets/sparkcert-architecture.svg\` — diagram of the **implemented** local-controller architecture; subtle animated paths represent logical data movement only.
+- `sparkcert/tunnels.py`: process-local OpenSSH port forwarding bound to `127.0.0.1`, strict host keys via system OpenSSH, process shutdown, 4-tunnel cap.
+- `sparkcert/transfers.py`: bounded 16 MiB, opt-in SSH download/upload using a fixed remote Python 3 script and controlled upload directory. Never treat this as a sandbox against a malicious remote host or adversarial symlink races.
+- `sparkcert/store.py`: automatic nullable SHA-256 column migration, retention/delete, non-content audit history, digest verification status.
+- `sparkcert/evaluation.py`: 1–3 per-case repetitions, up to 4 simultaneous requests, p50/p95 latency, 1 MiB per-response cap.
+- `sparkcert/app.py`: authenticated new tunnel, upload, download, audit, retention and delete-report routes. Existing localhost auth/origin security remains.
+- `web/app.js` and `web/styles.css`: tunneling, transfers, audit, retention and bounded evaluation controls, with no mock metrics in the running application.
+- `.github/workflows/ci.yml`: 3 OS × 3 Python-version test matrix, unsigned desktop build recipes, pip-audit/SBOM job (not proven to pass remotely).
+- `tests/test_v02.py`: six automated tests for new control-plane protections and integrity.
+- `scripts/ui_smoke.py`: optional offline Chromium mock-data navigation/visual test; never claim results as hardware verification.
 
-The README also links to \`docs/ARCHITECTURE.md\`, \`docs/DESIGN_SYSTEM.md\`, \`docs/PROJECT_STATUS.md\`, \`docs/VERIFICATION.md\`, and this handoff so future workspaces can continue with full context.
+### Current verification
 
-GitHub repository sidebar **About** description and topics require a separate repository-metadata edit; committing markdown does not change them. The exact suggested metadata and owner instructions are in \`docs/REPOSITORY_PROFILE.md\`. Do not claim those sidebar settings were applied unless independently verified.
+- Linux/Python 3.13: `python -m pytest -q`: **15 passed**; `node --check web/app.js`: **pass**; Python `compileall`: **pass**; `python scripts/ui_smoke.py`: **pass** at desktop/mobile sizes with mocked API.
+- Real physical NVIDIA DGX Spark SSH, transfer, tunnel and inference tests: **NOT DONE**.
+- Windows/macOS signed binary builds and installer smoke tests: **NOT DONE**.
+- Independent pentest, SBOM workflow execution, vulnerability scan and accessibility certification: **NOT DONE**.
 
-**Verification:** original Python automated test suite: 9 passed; \`node --check web/app.js\` completed successfully in the current Linux workspace. GitHub source-file links and asset contents were fetched from the updated \`main\` branch. Animated SVG should be reviewed visually on the public GitHub README; no real DGX Spark connection, signed installer, hardware evaluation, or customer acceptance testing was performed as part of this documentation update.
+### Continuation priorities
+
+1. Clone canonical repository `https://github.com/hossain0707/SparkCert`; check latest `main` commit and version; read status and verification docs before editing.
+2. Confirm actual CI workflow results on GitHub and repair environment-specific packaging failures.
+3. Lab-validate supported Windows/macOS/Linux + DGX Spark direct Ethernet/LAN/Tailscale/ProxyJump. Capture actual hardware/OS/device/test evidence with permission and no secrets.
+4. Implement privacy threat model, encrypted-at-rest option, user consent controls, mature error handling and accessibility tests.
+5. Verify signed distributions on clean machines, operator acceptance, release checklist and license decision; only then consider public production readiness language.
+
+### Rules
+
+- Never invent measured hardware results, sign-off or official NVIDIA certification.
+- Do not publish a production release solely based on passing mocked integration tests.
+- Persist only SSH profile references, bounded model outputs and local audit metadata, not credentials.
+- Keep README SVG animation truthful and accessible; no fake live state. Update diagram when a new component actually ships.

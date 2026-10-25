@@ -35,6 +35,8 @@ def pdf_bytes(run: dict) -> bytes:
             [cell("Target"), cell(run.get("device_name") or result.get("model", "Unspecified"))],
             [cell("Created (UTC)"), cell(run["created_at"])],
             [cell("Result ID"), cell(run["id"])],
+            [cell("Evidence checksum status"), cell(run.get("integrity", "Unverified"))],
+            [cell("Result SHA-256"), cell(run.get("result_sha256") or "Legacy record; no stored digest")],
             [cell("Pass rate"), cell(f"{result['score']}%" if result.get("score") is not None else "N/A")]]
     tbl = Table(rows, colWidths=[148, 347], hAlign="LEFT")
     tbl.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F0F5F7")),
@@ -56,10 +58,15 @@ def pdf_bytes(run: dict) -> bytes:
             detail += " | Latency: " + safe(item["latency_ms"]) + " ms"
         body.append(KeepTogether([Paragraph(title, styles["BodyCustom"]),
                                   Paragraph(detail, styles["SmallCustom"]), Spacer(1, 9)]))
+    if result.get("requests_total") is not None:
+        body.extend([Paragraph("Observed request timing", styles["Sec"]),
+                     Paragraph(safe(f"Requests: {result.get('requests_total')} | concurrency: {result.get('concurrency')} | repetitions: {result.get('repetitions')} | p50: {result.get('latency_p50_ms')} ms | p95: {result.get('latency_p95_ms')} ms"), styles["SmallCustom"])])
     body += [Paragraph("Method and limitations", styles["Sec"]),
              Paragraph(safe(result.get("method", "Unspecified")), styles["BodyCustom"]),
              Spacer(1, 6), Paragraph(safe(result.get("scope", "")), styles["SmallCustom"]),
              Spacer(1, 14),
+             Paragraph("The SHA-256 checksum detects accidental local record changes, but is not a digital signature, tamper-proof attestation, or externally verified provenance.", styles["SmallCustom"]),
+             Spacer(1, 8),
              Paragraph("This report records observed test outcomes only. It is not an NVIDIA endorsement, external audit, regulatory approval, or formal certification.", styles["SmallCustom"])]
 
     def footer(canvas, doc):
