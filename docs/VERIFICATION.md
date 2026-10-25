@@ -64,3 +64,8 @@ Do not promote any row to pass until exercised on that real platform. Important 
 - **Not executed:** real SSH transport (OpenSSH client is not installed in this container), physical DGX Spark connection, Ethernet/VPN end-to-end, Windows/macOS PyInstaller build, CI cloud runners, vulnerability audit tool, SBOM command, signed distribution or external penetration test.
 
 No '100% production-ready' or external certification claim can be made on this evidence.
+
+
+## 2026-10-25 — GitHub-hosted CI evidence
+
+GitHub Actions run [40145092403](https://github.com/hossain0707/SparkCert/actions/runs/40145092403) completed **successfully** against commit `0d381b95de6eb6f2d2715c0de1f6bb2972efe23d`. Thirteen jobs passed: Python/JavaScript tests on Windows, macOS and Ubuntu with Python 3.11, 3.12 and 3.13 (nine combinations); a pip-audit/SBOM job; and unsigned desktop build jobs on each OS (three). Artifacts were produced: Windows, macOS, Linux build candidates and an SBOM. These results establish CI **buildability and automated test portability**, not installer usability on clean machines, signed distribution, actual physical DGX Spark connectivity or independent penetration testing. The workflow source does not contain macOS notarization/Windows Authenticode signing. Subsequent documentation-only commits trigger additional runs and do not change this feature validation baseline.
