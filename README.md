@@ -53,6 +53,9 @@ Most AI deployment documentation stops at "the model runs." SparkCert focuses on
 | [Verification ledger](docs/VERIFICATION.md) | Test evidence, manual hardware / OS validation matrix |
 | [Development roadmap](docs/PRODUCT_ROADMAP.md) | Production hardening and milestones |
 | [Workspace handover](docs/WORKSPACE_HANDOFF.md) | Canonical handoff for another computer or coding agent |
+| [Installation & onboarding](docs/INSTALLATION.md) | Windows/macOS/Linux source install, Ethernet/SSH and private model tunnel setup |
+| [Release qualification](docs/RELEASE_CHECKLIST.md) | Explicit verified checks, remaining hardware/signing/security gates |
+| [Security and privacy model](docs/SECURITY_MODEL.md) | Trust boundaries, controls, residual risks and next security reviews |
 | [Repository About metadata](docs/REPOSITORY_PROFILE.md) | Description, suggested GitHub topics and setup instructions |
 | [Continue in new workspace](docs/CONTINUE_IN_NEW_WORKSPACE.md) | Reusable development prompt and continuity checklist |
 
