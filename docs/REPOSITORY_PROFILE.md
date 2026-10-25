@@ -19,7 +19,7 @@ dgx-spark ssh local-first llm-evaluation ai-readiness private-ai gpu-diagnostics
 - GitHub repository: https://github.com/hossain0707/SparkCert
 - Default branch: main
 - Owner: Md Najmul Hossain
-- Version: v0.1.0 development MVP
+- Version: v0.2.0 development MVP
 - README visual assets: \`assets/sparkcert-hero.svg\`, \`assets/sparkcert-workflow-animated.svg\`, \`assets/sparkcert-architecture.svg\`
 - Animated workflow is **illustrative**, not a screen recording or a real-GPU benchmark.
 - The architecture image reflects the **implemented** local controller, read-only OpenSSH diagnostics, external model API evaluation, SQLite and PDF reports.
