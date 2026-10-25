@@ -8,9 +8,9 @@
 
 *Connect securely. Inspect real infrastructure. Evaluate a running model API. Export traceable evidence.*
 
-**Development MVP v0.1.0** · **Windows / macOS / Linux source install** · **No cloud account required** · **Independent, unofficial project**
+**Development candidate v0.2.0** · **Windows / macOS / Linux source install** · **No cloud account required** · **Independent, unofficial project**
 
-[Quick start](#quick-start-source) · [Animated walkthrough](#animated-product-walkthrough) · [Architecture](#system-architecture) · [Current features](#what-actually-works-in-v010) · [Roadmap](docs/PRODUCT_ROADMAP.md) · [Continue development](docs/HANDOVER_START_HERE.md)
+[Quick start](#quick-start-source) · [Animated walkthrough](#animated-product-walkthrough) · [Architecture](#system-architecture) · [Current features](#what-actually-works-in-v020) · [Roadmap](docs/PRODUCT_ROADMAP.md) · [Continue development](docs/HANDOVER_START_HERE.md)
 
 </div>
 
@@ -27,7 +27,7 @@
 
 *This animation is a conceptual walkthrough of the implemented workflow, not a live screen recording or evidence of successful DGX Spark hardware testing. It respects reduced-motion preferences.*
 
-**Experience today:** source-installed local web UI or optional pywebview desktop window. Native signed Windows/macOS/Linux installers, automatic device discovery, SSH tunnel creation, remote agent installation, model deployment and SFTP uploads are **planned, not shipped**.
+**Experience today:** source-installed local web UI or optional pywebview desktop window. Native signed Windows/macOS/Linux installers, automatic device discovery, remote agent installation, model deployment and accredited certification remain **planned, not shipped**. Private localhost-only SSH tunnels and bounded opt-in file transfers are implemented as development features but still await real-device validation.
 
 ## System architecture
 
@@ -35,7 +35,7 @@
   <img src="assets/sparkcert-architecture.svg" alt="SparkCert local-first architecture: browser or desktop UI to loopback FastAPI controller, system OpenSSH for remote Linux diagnostics, httpx for already-running model API, and local SQLite plus PDF reports" width="100%" />
 </p>
 
-**What runs where:** SparkCert's UI, FastAPI controller, OpenSSH client, evaluator and SQLite database run **on the operator's computer**. The remote DGX Spark/Linux host is accessed through existing SSH and provides read-only diagnostic output. AI model checks contact a **separately running** OpenAI-compatible endpoint, either directly or through a manually configured private tunnel. There is **no deployed SparkCert remote agent in v0.1.0**.
+**What runs where:** SparkCert's UI, FastAPI controller, OpenSSH client, evaluator and SQLite database run **on the operator's computer**. The remote DGX Spark/Linux host is accessed through existing SSH for read-only diagnostics; optional bounded uploads go to a dedicated private folder after explicit user consent. AI model checks contact a **separately running** OpenAI-compatible endpoint, either directly or through a user-managed or SparkCert-managed localhost-only SSH tunnel. There is **no deployed SparkCert remote agent in v0.2.0**; all tunnel and file-transfer operations depend on an existing trusted SSH connection.
 
 See the editable [Mermaid diagram and detailed data-flow documentation](docs/ARCHITECTURE.md), the [animated architecture tour](docs/ARCHITECTURE.html) (download/open locally; GitHub does not execute HTML previews), and the [design system](docs/DESIGN_SYSTEM.md).
 
@@ -58,7 +58,7 @@ Most AI deployment documentation stops at "the model runs." SparkCert focuses on
 
 ---
 
-## What actually works in v0.1.0
+## What actually works in v0.2.0
 
 | Capability | Implementation | Notes |
 | --- | --- | --- |
@@ -71,10 +71,10 @@ Most AI deployment documentation stops at "the model runs." SparkCert focuses on
 | Password authentication | Opens system terminal | No password form or password storage in this version |
 | SSH terminal | Launches system terminal | Supports interactive ssh/key passphrase prompts |
 | Device diagnostics | Real read-only SSH commands | GPU/driver, host RAM, disk, Docker, Python and system info |
-| Remote file browsing | Read-only home directory listing | Upload/download not implemented |
+| Remote file management | Home-scoped listing; opt-in upload/download | 16 MiB limit; remote Python 3 required; uploads uniquely named under `~/sparkcert-uploads` |\n| Managed private SSH tunnel | Loopback-only OpenSSH port forwarding | Up to four temporary tunnels; does not start or verify a model API |
 | Infrastructure readiness | 7 measured checks | Not a compliance or safety certification |
-| Live AI evaluation | OpenAI-compatible `/v1/chat/completions` | 4 built-in deterministic probes; editable custom cases |
-| Readiness reports | Local SQLite history, PDF export | Recorded test results; includes scope and limitations |
+| Live AI evaluation | OpenAI-compatible `/v1/chat/completions` | 4 built-in probes, custom cases, 1–3 repeats and 1–4 concurrent requests, measured p50/p95 |
+| Readiness reports | SQLite history, evidence SHA-256 check, PDF export, retention controls and activity log | Digest is not signed attestation; data at rest is not encrypted |
 | Offline/private deployments | Works without cloud credentials | Actual evaluation endpoint must be reachable |
 
 ## Quick start (source)
@@ -129,7 +129,7 @@ Host my-dgx-spark
 
 SparkCert runs evaluations *from the Windows/Mac/Linux computer* to a reachable **OpenAI-compatible API**, not by implicitly installing or starting a model on DGX Spark.
 
-For a model service listening on port 8000 of a DGX Spark, establish a private tunnel from a terminal:
+For a model service listening on port 8000 of a DGX Spark, start a **Private model API tunnel** from the **Connections** page, or establish one manually in a terminal:
 
 ```bash
 ssh -N -L 8000:127.0.0.1:8000 my-dgx-spark
@@ -157,7 +157,7 @@ The infrastructure pass percentage measures exactly these seven prerequisites:
 6. Python 3 available
 7. Docker daemon accessible to the account
 
-These **heuristic thresholds** are configurable only in code for v0.1.0 and are not NVIDIA standards. Not all business applications need Docker or Python, and high GPU utilization is not necessarily a deployment failure. DGX Spark has **unified memory**, so the product explicitly relies on Linux memory readings and does not assume dedicated framebuffer memory is reported by `nvidia-smi`.
+These **heuristic thresholds** are configurable only in code for v0.2.0 and are not NVIDIA standards. Not all business applications need Docker or Python, and high GPU utilization is not necessarily a deployment failure. DGX Spark has **unified memory**, so the product explicitly relies on Linux memory readings and does not assume dedicated framebuffer memory is reported by `nvidia-smi`.
 
 An evidence PDF includes the timestamp, run UUID, target name, checks, pass/fail details, method, and limitations. Reports do not represent external certification.
 
@@ -168,9 +168,24 @@ An evidence PDF includes the timestamp, run UUID, target name, checks, pass/fail
 - OpenSSH uses strict known-host verification, batch key/agent authentication for diagnostics, bounded command execution, and subprocess argument arrays (no local shell expansion).
 - Only predefined **read-only** diagnostic scripts run on the remote system.
 - SQLite lives under `~/.sparkcert`; directory permissions restrict other local OS users on Unix.
-- No SSH passwords or AI API keys persisted. Never store unencrypted private keys in the app project directory.
+- No SSH passwords or AI API keys persisted. Opt-in SSH uploads write only under a dedicated remote folder. Never store unencrypted private keys in the app project directory.
 - Model output is escaped before HTML display and XML-escaped for PDF rendering.
 - Not independently pentested. Perform threat modeling, dependency audit, secure update design, and penetration testing before offering this as a regulated or paid enterprise product.
+
+## UI walkthrough previews (mock data only)
+
+These screenshots demonstrate layout and responsiveness, **not** a real DGX Spark connection or live model benchmarks.
+
+<table><tr><td width="67%"><img src="docs/assets/v02-desktop-settings-preview.png" alt="Development UI preview on desktop: SparkCert local security, report retention, activity history; explicitly mocked demo data" /></td><td width="33%"><img src="docs/assets/v02-mobile-settings-preview.png" alt="Development UI preview on mobile: responsive SparkCert local security and retention settings; mock data" /></td></tr></table>
+
+## v0.2 release gates still open
+
+- Windows/macOS/Linux **clean-machine and physical DGX Spark** validation (Ethernet, LAN, remote VPN, host-key mismatch, transport errors).
+- Signed/notarized installers, actual CI release artifact verification, dependency review and independent penetration test.
+- Calibrated organization-specific policy packs, true concurrency/load methodology, privacy/data-at-rest encryption and accessibility review.
+- Licensing and customer support/update policy before any commercial production launch.
+
+Full state and evidence: [project status](docs/PROJECT_STATUS.md) · [verification ledger](docs/VERIFICATION.md) · [workspace handover](docs/WORKSPACE_HANDOFF.md).
 
 ## Tests
 
@@ -180,7 +195,7 @@ pytest -q
 node --check web/app.js
 ```
 
-See `docs/PRODUCT_ROADMAP.md` for production hardening and supported scope. For details of NVIDIA's existing SSH management functionality, consult [NVIDIA Sync](https://docs.nvidia.com/dgx/dgx-spark/nvidia-sync.html).
+Run `python scripts/ui_smoke.py` for an offline Chromium mock-data navigation test (optional Playwright and Chromium required; it does not connect to hardware). See `docs/PRODUCT_ROADMAP.md` for production hardening and supported scope. For details of NVIDIA's existing SSH management functionality, consult [NVIDIA Sync](https://docs.nvidia.com/dgx/dgx-spark/nvidia-sync.html).
 
 ## Licensing and brand
 
