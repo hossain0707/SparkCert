@@ -17,7 +17,7 @@
 | Infrastructure readiness | Seven explicit prerequisite checks with real-result report recording | Thresholds are **project heuristics**, not official NVIDIA standards |
 | LLM evaluation | OpenAI-compatible chat API, 4 defined probes + custom cases, repetition 1–3, concurrency 1–4, p50/p95 latency | MockTransport tests; useful for comparison, **not an audited performance/robustness benchmark** |
 | Persistence and reporting | SQLite, PDF evidence, result JSON SHA-256 check, delete/retention, local non-content audit events | Tests pass; digest not an independent digital signature; no encryption/RBAC |
-| Build automation | Cross-OS Python test matrix, unsigned PyInstaller build candidates, SBOM and pip-audit workflow definitions | Workflow has not been verified successful on GitHub runners; artifacts are unsigned |
+| Build automation | Cross-OS Python test matrix, unsigned PyInstaller build candidates, SBOM and pip-audit workflow definitions | 13 GitHub Actions jobs passed on run 40145092403; build artifacts remain unsigned and not installed on clean target hardware |
 | Documentation and GitHub presentation | README visuals/animation, architecture diagram, handover, tests, developer instructions | Screenshots are explicitly mock-data previews; existing GitHub metadata may require owner sidebar edit |
 
 ## Open production release gates (must not be called complete)
@@ -44,3 +44,8 @@
 Environment: Linux container · Python 3.13 · `pytest -q`: **15 passed** · `node --check web/app.js`: **pass** · `python -m compileall -q sparkcert`: **pass** · offline Chromium screenshots: desktop/mobile **pass** using mocked API data. **No real DGX Spark, macOS or Windows acceptance tests have been performed here.**
 
 For new workspaces start with `docs/HANDOVER_START_HERE.md` and `docs/WORKSPACE_HANDOFF.md`.
+
+
+## 2026-10-25 — GitHub-hosted CI evidence
+
+GitHub Actions run [40145092403](https://github.com/hossain0707/SparkCert/actions/runs/40145092403) completed **successfully** against commit `0d381b95de6eb6f2d2715c0de1f6bb2972efe23d`. Thirteen jobs passed: Python/JavaScript tests on Windows, macOS and Ubuntu with Python 3.11, 3.12 and 3.13 (nine combinations); a pip-audit/SBOM job; and unsigned desktop build jobs on each OS (three). Artifacts were produced: Windows, macOS, Linux build candidates and an SBOM. These results establish CI **buildability and automated test portability**, not installer usability on clean machines, signed distribution, actual physical DGX Spark connectivity or independent penetration testing. The workflow source does not contain macOS notarization/Windows Authenticode signing. Subsequent documentation-only commits trigger additional runs and do not change this feature validation baseline.
